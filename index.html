@@ -141,6 +141,7 @@
                   <td style={{ padding: "7px 0", borderBottom: "1px solid #eee", textAlign: "right" }}>{fmt(getSonstigePreis(x))}</td>
                 </tr>
               ))}
+              <tr><td colSpan={2} style={{ padding: "10px 0 4px", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.08em", color: "#888", fontWeight: 600 }}>Sonstiges</td></tr>
               <tr><td style={{ padding: "7px 0", borderBottom: "1px solid #eee" }}>Rüst- und Anfahrtspauschale ({km} km)</td><td style={{ padding: "7px 0", borderBottom: "1px solid #eee", textAlign: "right" }}>{fmt(anfahrt)}</td></tr>
               {rabattBetrag > 0 && <>
                 <tr style={{ color: "#c0392b" }}><td style={{ padding: "7px 0", borderBottom: "1px solid #eee" }}>Rabatt {rabatt} %</td><td style={{ padding: "7px 0", borderBottom: "1px solid #eee", textAlign: "right" }}>− {fmt(rabattBetrag)}</td></tr>
@@ -555,7 +556,8 @@
                   </div>
                 ))}
 
-                <div style={{ display: "flex", justifyContent: "space-between", marginTop: 10, paddingTop: 10, borderTop: "1px solid #2e4030" }}>
+                <div style={{ fontSize: "0.75rem", color: "#7aaa7a", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 6, marginTop: 8, fontWeight: 600 }}>Sonstiges</div>
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 7 }}>
                   <span style={{ color: "#aaa", fontSize: "0.83rem" }}>Anfahrt ({km} km)</span>
                   <span style={{ color: "#e8e0d0", fontSize: "0.83rem" }}>{fmt(anfahrt)}</span>
                 </div>
