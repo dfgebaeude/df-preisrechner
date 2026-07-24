@@ -98,6 +98,11 @@
         ? (parseFloat(x.stundenlohn) || 0) * (parseFloat(x.stunden) || 1)
         : (parseFloat(x.preis) || 0);
       const [rabatt, setRabatt] = useState(0);
+      const [freiM2, setFreiM2] = useState([{ id: 1, bezeichnung: "", preis: "", m2: 0 }]);
+      const addFreiM2 = () => setFreiM2(p => [...p, { id: Date.now(), bezeichnung: "", preis: "", m2: 0 }]);
+      const removeFreiM2 = id => setFreiM2(p => p.filter(x => x.id !== id));
+      const updFreiM2 = (id, f, v) => setFreiM2(p => p.map(x => x.id === id ? { ...x, [f]: v } : x));
+      const freiM2Summe = freiM2.reduce((a, x) => a + (parseFloat(x.preis) || 0) * (parseFloat(x.m2) || 0), 0);
       const [showPrint, setShowPrint] = useState(false);
       const [shareMsg, setShareMsg] = useState("");
       const [kunde, setKunde] = useState({ name: "", strasse: "", plz: "", ort: "", telefon: "", email: "", notiz: "" });
@@ -120,7 +125,7 @@
       const sonstigeSumme = sonstige.reduce((a, x) => a + getSonstigePreis(x), 0);
 
       const bauSumme = baum2 * BAU_PREIS;
-      const netto = aktivePositionen.reduce((a, x) => a + x.summe, 0) + bauSumme + sonstigeSumme;
+      const netto = aktivePositionen.reduce((a, x) => a + x.summe, 0) + bauSumme + freiM2Summe + sonstigeSumme;
       const nettoGesamt = netto > 0 ? netto + anfahrt : 0;
       const rabattBetrag = nettoGesamt * ((parseFloat(rabatt) || 0) / 100);
       const nettoNachRabatt = nettoGesamt - rabattBetrag;
@@ -133,6 +138,8 @@
           return `${x.s.anzahl}x ${x.label}${tags.length ? ` (${tags.join(", ")})` : ""}: ${fmt(x.summe)}`;
         }).join("\n");
         const bauLine = bauSumme > 0 ? `Bauendreinigung ${baum2} m²: ${fmt(bauSumme)}` : "";
+        const freiM2Lines = freiM2.filter(x => (parseFloat(x.preis)||0)*(parseFloat(x.m2)||0) > 0)
+          .map(x => `${x.bezeichnung || "m²-Leistung"} ${x.m2} m² (${fmt(parseFloat(x.preis))}/m²): ${fmt((parseFloat(x.preis)||0)*(parseFloat(x.m2)||0))}`).join("\n");
         const sonstigeLines = sonstige.filter(x => getSonstigePreis(x) > 0).map(x => {
           const p = getSonstigePreis(x);
           const detail = x.typ === "stunden" ? ` (${x.stunden} Std. × ${fmt(parseFloat(x.stundenlohn))})` : "";
@@ -148,6 +155,7 @@
           ``,
           lines || null,
           bauLine || null,
+          freiM2Lines || null,
           sonstigeLines || null,
           `Anfahrt (${km} km): ${fmt(anfahrt)}`,
           `──────────────────`,
@@ -165,6 +173,7 @@
           `\nhiermit erhalten Sie unser Angebot:\n`,
           lines || null,
           bauLine || null,
+          freiM2Lines || null,
           sonstigeLines || null,
           `Rüst- und Anfahrtspauschale (${km} km): ${fmt(anfahrt)}`,
           `──────────────────────────────`,
@@ -258,6 +267,49 @@
                 </div>
                 {bauSumme > 0 && <div style={{ fontWeight: 700, color: "#1c2b1e", fontSize: "1rem" }}>{fmt(bauSumme)}</div>}
               </div>
+            </div>
+
+            {/* Freie m²-Leistungen */}
+            <div style={{ background: freiM2Summe > 0 ? "#eef5ee" : "#fff", border: `1px solid ${freiM2Summe > 0 ? "#a8c5a0" : "#ddd6c8"}`, borderRadius: 6, padding: "14px 18px", marginBottom: 12, transition: "all 0.15s" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                <span style={{ background: "#1c2b1e", color: "#7aaa7a", borderRadius: 3, padding: "3px 8px", fontSize: "0.62rem", letterSpacing: "0.15em", textTransform: "uppercase" }}>Weitere m²-Leistungen</span>
+                <button onClick={addFreiM2} style={{ background: "#1c2b1e", color: "#7aaa7a", border: "none", borderRadius: 4, padding: "6px 10px", fontSize: "0.78rem", cursor: "pointer" }}>+ Position</button>
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                {freiM2.map(item => {
+                  const summe = (parseFloat(item.preis) || 0) * (parseFloat(item.m2) || 0);
+                  return (
+                    <div key={item.id} style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+                      <input type="text" placeholder="Bezeichnung (z.B. Teppichreinigung)" value={item.bezeichnung} onChange={e => updFreiM2(item.id, "bezeichnung", e.target.value)}
+                        style={{ flex: "2 1 140px", padding: "8px 10px", border: "1px solid #ddd", borderRadius: 4, fontSize: "0.88rem", background: "#fafaf8" }} />
+                      <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                        <input type="number" min={0} step={0.1} placeholder="€/m²" value={item.preis} onChange={e => updFreiM2(item.id, "preis", e.target.value)}
+                          style={{ width: 72, padding: "8px 6px", border: "1px solid #ddd", borderRadius: 4, fontSize: "0.88rem", textAlign: "right", background: "#fafaf8" }} />
+                        <span style={{ fontSize: "0.78rem", color: "#888" }}>€/m²</span>
+                      </div>
+                      <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                        <button onClick={() => updFreiM2(item.id, "m2", Math.max(0, (parseFloat(item.m2) || 0) - 1))}
+                          style={{ width: 28, height: 28, border: "1px solid #ccc", borderRadius: 4, background: "#fff", cursor: "pointer", fontSize: "1rem", color: "#555" }}>−</button>
+                        <input type="number" min={0} step={1} value={item.m2} onChange={e => updFreiM2(item.id, "m2", Math.max(0, parseFloat(e.target.value) || 0))}
+                          style={{ width: 56, textAlign: "center", border: "1px solid #ccc", borderRadius: 4, padding: "6px 4px", fontSize: "0.88rem", background: "#fafaf8" }} />
+                        <button onClick={() => updFreiM2(item.id, "m2", (parseFloat(item.m2) || 0) + 1)}
+                          style={{ width: 28, height: 28, border: "1px solid #ccc", borderRadius: 4, background: "#fff", cursor: "pointer", fontSize: "1rem", color: "#555" }}>+</button>
+                        <span style={{ fontSize: "0.78rem", color: "#888" }}>m²</span>
+                      </div>
+                      {summe > 0 && <span style={{ fontWeight: 700, color: "#1c2b1e", fontSize: "0.95rem" }}>{fmt(summe)}</span>}
+                      {freiM2.length > 1 && (
+                        <button onClick={() => removeFreiM2(item.id)} style={{ background: "none", border: "1px solid #eee", borderRadius: 4, color: "#bbb", cursor: "pointer", fontSize: "1rem", width: 28, height: 28, marginLeft: "auto" }}>✕</button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+              {freiM2Summe > 0 && (
+                <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 10, paddingTop: 10, borderTop: "1px solid #e8e0d0" }}>
+                  <span style={{ fontSize: "0.72rem", color: "#aaa", marginRight: 8, alignSelf: "center" }}>Summe m²-Leistungen</span>
+                  <span style={{ fontSize: "1rem", color: "#1c2b1e", fontWeight: 700 }}>{fmt(freiM2Summe)}</span>
+                </div>
+              )}
             </div>
 
             {/* Fenster-Karten */}
@@ -385,12 +437,24 @@
                   );
                 })}
 
+                {(bauSumme > 0 || freiM2Summe > 0) && (
+                  <div style={{ fontSize: "0.65rem", color: "#7aaa7a", textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: 6, marginTop: 8 }}>m²-Leistungen</div>
+                )}
                 {bauSumme > 0 && (
                   <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 7, gap: 12 }}>
                     <span style={{ color: "#ccc", fontSize: "0.83rem" }}>Bauendreinigung {baum2} m² <span style={{ color: "#7aaa7a", fontSize: "0.72rem" }}>({fmt(BAU_PREIS)}/m²)</span></span>
                     <span style={{ color: "#e8e0d0", fontSize: "0.83rem", flexShrink: 0 }}>{fmt(bauSumme)}</span>
                   </div>
                 )}
+                {freiM2.filter(x => (parseFloat(x.preis) || 0) * (parseFloat(x.m2) || 0) > 0).map(x => (
+                  <div key={x.id} style={{ display: "flex", justifyContent: "space-between", marginBottom: 7, gap: 12 }}>
+                    <span style={{ color: "#ccc", fontSize: "0.83rem" }}>
+                      {x.bezeichnung || "m²-Leistung"} {x.m2} m²
+                      <span style={{ color: "#7aaa7a", fontSize: "0.72rem", marginLeft: 6 }}>({fmt(parseFloat(x.preis))}/m²)</span>
+                    </span>
+                    <span style={{ color: "#e8e0d0", fontSize: "0.83rem", flexShrink: 0 }}>{fmt((parseFloat(x.preis) || 0) * (parseFloat(x.m2) || 0))}</span>
+                  </div>
+                ))}
 
                 {sonstige.filter(x => getSonstigePreis(x) > 0).length > 0 && (
                   <div style={{ fontSize: "0.65rem", color: "#7aaa7a", textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: 6, marginTop: 8 }}>Sonstige Leistungen</div>
@@ -544,7 +608,21 @@
                           </tr>
                         );
                       })}
+                      {(bauSumme > 0 || freiM2Summe > 0) && (
+                        <tr>
+                          <td colSpan={2} style={{ padding: "10px 0 4px", fontSize: "9px", textTransform: "uppercase", letterSpacing: "0.1em", color: "#888", fontWeight: 600 }}>m²-Leistungen</td>
+                        </tr>
+                      )}
                       {bauSumme > 0 && <tr><td style={{ padding: "7px 0", borderBottom: "1px solid #eee" }}>Bauendreinigung – {baum2} m²</td><td style={{ padding: "7px 0", borderBottom: "1px solid #eee", textAlign: "right" }}>{fmt(bauSumme)}</td></tr>}
+                      {freiM2.filter(x => (parseFloat(x.preis)||0)*(parseFloat(x.m2)||0) > 0).map(x => (
+                        <tr key={x.id}>
+                          <td style={{ padding: "7px 0", borderBottom: "1px solid #eee" }}>
+                            {x.bezeichnung || "m²-Leistung"} – {x.m2} m²
+                            <span style={{ color: "#888", fontSize: "11px" }}> ({fmt(parseFloat(x.preis))}/m²)</span>
+                          </td>
+                          <td style={{ padding: "7px 0", borderBottom: "1px solid #eee", textAlign: "right" }}>{fmt((parseFloat(x.preis)||0)*(parseFloat(x.m2)||0))}</td>
+                        </tr>
+                      ))}
                       {sonstige.filter(x => getSonstigePreis(x) > 0).length > 0 && (
                         <tr>
                           <td colSpan={2} style={{ padding: "10px 0 4px", fontSize: "9px", textTransform: "uppercase", letterSpacing: "0.1em", color: "#888", fontWeight: 600 }}>Sonstige Leistungen</td>
