@@ -108,12 +108,12 @@
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr>
-                <th style={{ fontSize: "9px", textTransform: "uppercase", color: "#888", borderBottom: "1px solid #ccc", padding: "6px 0", textAlign: "left", letterSpacing: "0.1em" }}>Bezeichnung</th>
-                <th style={{ fontSize: "9px", textTransform: "uppercase", color: "#888", borderBottom: "1px solid #ccc", padding: "6px 0", textAlign: "right", letterSpacing: "0.1em" }}>Betrag</th>
+                <th style={{ fontSize: "10px", textTransform: "uppercase", color: "#888", borderBottom: "1px solid #ccc", padding: "6px 0", textAlign: "left", letterSpacing: "0.08em" }}>Bezeichnung</th>
+                <th style={{ fontSize: "10px", textTransform: "uppercase", color: "#888", borderBottom: "1px solid #ccc", padding: "6px 0", textAlign: "right", letterSpacing: "0.08em" }}>Betrag</th>
               </tr>
             </thead>
             <tbody>
-              {aktivePositionen.length > 0 && <tr><td colSpan={2} style={{ padding: "8px 0 4px", fontSize: "9px", textTransform: "uppercase", letterSpacing: "0.1em", color: "#888", fontWeight: 600 }}>Glas- und Fensterreinigung</td></tr>}
+              {aktivePositionen.length > 0 && <tr><td colSpan={2} style={{ padding: "8px 0 4px", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.08em", color: "#888", fontWeight: 600 }}>Glas- und Fensterreinigung</td></tr>}
               {aktivePositionen.map(x => {
                 const tags = [x.s.rahmen && "Rahmen", x.s.falz && "Falz", x.s.schwer && "schwer zugängl."].filter(Boolean);
                 return (
@@ -123,7 +123,7 @@
                   </tr>
                 );
               })}
-              {(bauSumme > 0 || freiM2Summe > 0) && <tr><td colSpan={2} style={{ padding: "10px 0 4px", fontSize: "9px", textTransform: "uppercase", letterSpacing: "0.1em", color: "#888", fontWeight: 600 }}>m²-Leistungen</td></tr>}
+              {(bauSumme > 0 || freiM2Summe > 0) && <tr><td colSpan={2} style={{ padding: "10px 0 4px", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.08em", color: "#888", fontWeight: 600 }}>m²-Leistungen</td></tr>}
               {bauSumme > 0 && <tr><td style={{ padding: "7px 0", borderBottom: "1px solid #eee" }}>Bauendreinigung – {baum2} m²</td><td style={{ padding: "7px 0", borderBottom: "1px solid #eee", textAlign: "right" }}>{fmt(bauSumme)}</td></tr>}
               {freiM2.filter(x => (parseFloat(x.preis)||0)*(parseFloat(x.m2)||0) > 0).map(x => (
                 <tr key={x.id}>
@@ -131,7 +131,7 @@
                   <td style={{ padding: "7px 0", borderBottom: "1px solid #eee", textAlign: "right" }}>{fmt((parseFloat(x.preis)||0)*(parseFloat(x.m2)||0))}</td>
                 </tr>
               ))}
-              {sonstige.filter(x => getSonstigePreis(x) > 0).length > 0 && <tr><td colSpan={2} style={{ padding: "10px 0 4px", fontSize: "9px", textTransform: "uppercase", letterSpacing: "0.1em", color: "#888", fontWeight: 600 }}>Sonstige Leistungen</td></tr>}
+              {sonstige.filter(x => getSonstigePreis(x) > 0).length > 0 && <tr><td colSpan={2} style={{ padding: "10px 0 4px", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.08em", color: "#888", fontWeight: 600 }}>Sonstige Leistungen</td></tr>}
               {sonstige.filter(x => getSonstigePreis(x) > 0).map(x => (
                 <tr key={x.id}>
                   <td style={{ padding: "7px 0", borderBottom: "1px solid #eee" }}>
@@ -308,18 +308,18 @@
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
                 {[["name","Name / Firma","Max Mustermann","1/-1"],["strasse","Straße & Hausnr.","Musterstraße 12","1/-1"]].map(([f,l,p,gc]) => (
                   <div key={f} style={{ gridColumn: gc }}>
-                    <label style={{ fontSize: "0.68rem", color: "#888", textTransform: "uppercase", letterSpacing: "0.09em", display: "block", marginBottom: 4 }}>{l}</label>
+                    <label style={{ fontSize: "0.72rem", color: "#888", textTransform: "uppercase", letterSpacing: "0.07em", display: "block", marginBottom: 4 }}>{l}</label>
                     <input value={kunde[f]} onChange={e => setK(f, e.target.value)} placeholder={p} style={inp} />
                   </div>
                 ))}
                 {[["plz","PLZ","12345"],["ort","Ort","Musterstadt"],["telefon","Telefon","+49 151 ..."],["email","E-Mail","kunde@mail.de"]].map(([f,l,p]) => (
                   <div key={f}>
-                    <label style={{ fontSize: "0.68rem", color: "#888", textTransform: "uppercase", letterSpacing: "0.09em", display: "block", marginBottom: 4 }}>{l}</label>
+                    <label style={{ fontSize: "0.72rem", color: "#888", textTransform: "uppercase", letterSpacing: "0.07em", display: "block", marginBottom: 4 }}>{l}</label>
                     <input value={kunde[f]} onChange={e => setK(f, e.target.value)} placeholder={p} style={inp} />
                   </div>
                 ))}
                 <div style={{ gridColumn: "1/-1" }}>
-                  <label style={{ fontSize: "0.68rem", color: "#888", textTransform: "uppercase", letterSpacing: "0.09em", display: "block", marginBottom: 4 }}>Notiz</label>
+                  <label style={{ fontSize: "0.72rem", color: "#888", textTransform: "uppercase", letterSpacing: "0.07em", display: "block", marginBottom: 4 }}>Notiz</label>
                   <textarea value={kunde.notiz} onChange={e => setK("notiz", e.target.value)} placeholder="z.B. 3. Stock, Termin, Hinweise..." rows={2} style={{ ...inp, resize: "vertical", lineHeight: 1.5 }} />
                 </div>
               </div>
@@ -503,12 +503,12 @@
             {/* Zusammenfassung */}
             {netto > 0 && (
               <div style={{ background: "#1c2b1e", borderRadius: 6, padding: "20px 22px", marginBottom: 14 }}>
-                <div style={{ color: "#7aaa7a", fontSize: "0.6rem", letterSpacing: "0.18em", textTransform: "uppercase", fontFamily: "'Inter', sans-serif", marginBottom: 12 }}>
+                <div style={{ color: "#7aaa7a", fontSize: "0.72rem", letterSpacing: "0.12em", textTransform: "uppercase", fontFamily: "'Inter', sans-serif", marginBottom: 12, fontWeight: 600 }}>
                   Zusammenfassung {kunde.name && <span style={{ color: "#a8c5a0", marginLeft: 6 }}>· {kunde.name}{kunde.ort ? `, ${kunde.ort}` : ""}</span>}
                 </div>
 
                 {aktivePositionen.length > 0 && (
-                  <div style={{ fontSize: "0.65rem", color: "#7aaa7a", textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: 6, marginTop: 4 }}>Glas- und Fensterreinigung</div>
+                  <div style={{ fontSize: "0.75rem", color: "#7aaa7a", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 6, marginTop: 8, fontWeight: 600 }}>Glas- und Fensterreinigung</div>
                 )}
                 {aktivePositionen.map(x => {
                   const tags = [x.s.rahmen && "Rahmen", x.s.falz && "Falz", x.s.schwer && "schwer zugängl."].filter(Boolean);
@@ -524,7 +524,7 @@
                 })}
 
                 {(bauSumme > 0 || freiM2Summe > 0) && (
-                  <div style={{ fontSize: "0.65rem", color: "#7aaa7a", textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: 6, marginTop: 8 }}>m²-Leistungen</div>
+                  <div style={{ fontSize: "0.75rem", color: "#7aaa7a", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 6, marginTop: 8, fontWeight: 600 }}>m²-Leistungen</div>
                 )}
                 {bauSumme > 0 && (
                   <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 7, gap: 12 }}>
@@ -543,7 +543,7 @@
                 ))}
 
                 {sonstige.filter(x => getSonstigePreis(x) > 0).length > 0 && (
-                  <div style={{ fontSize: "0.65rem", color: "#7aaa7a", textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: 6, marginTop: 8 }}>Sonstige Leistungen</div>
+                  <div style={{ fontSize: "0.75rem", color: "#7aaa7a", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 6, marginTop: 8, fontWeight: 600 }}>Sonstige Leistungen</div>
                 )}
                 {sonstige.filter(x => getSonstigePreis(x) > 0).map(x => (
                   <div key={x.id} style={{ display: "flex", justifyContent: "space-between", marginBottom: 7, gap: 12 }}>
