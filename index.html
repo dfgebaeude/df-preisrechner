@@ -166,7 +166,7 @@
           lines || null,
           bauLine || null,
           sonstigeLines || null,
-          `Anfahrtspauschale (${km} km): ${fmt(anfahrt)}`,
+          `Rüst- und Anfahrtspauschale (${km} km): ${fmt(anfahrt)}`,
           `──────────────────────────────`,
           `Netto: ${fmt(nettoGesamt)}`,
           rabattLine || null,
@@ -392,6 +392,9 @@
                   </div>
                 )}
 
+                {sonstige.filter(x => getSonstigePreis(x) > 0).length > 0 && (
+                  <div style={{ fontSize: "0.65rem", color: "#7aaa7a", textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: 6, marginTop: 8 }}>Sonstige Leistungen</div>
+                )}
                 {sonstige.filter(x => getSonstigePreis(x) > 0).map(x => (
                   <div key={x.id} style={{ display: "flex", justifyContent: "space-between", marginBottom: 7, gap: 12 }}>
                     <span style={{ color: "#ccc", fontSize: "0.83rem" }}>
@@ -542,6 +545,11 @@
                         );
                       })}
                       {bauSumme > 0 && <tr><td style={{ padding: "7px 0", borderBottom: "1px solid #eee" }}>Bauendreinigung – {baum2} m²</td><td style={{ padding: "7px 0", borderBottom: "1px solid #eee", textAlign: "right" }}>{fmt(bauSumme)}</td></tr>}
+                      {sonstige.filter(x => getSonstigePreis(x) > 0).length > 0 && (
+                        <tr>
+                          <td colSpan={2} style={{ padding: "10px 0 4px", fontSize: "9px", textTransform: "uppercase", letterSpacing: "0.1em", color: "#888", fontWeight: 600 }}>Sonstige Leistungen</td>
+                        </tr>
+                      )}
                       {sonstige.filter(x => getSonstigePreis(x) > 0).map(x => (
                         <tr key={x.id}>
                           <td style={{ padding: "7px 0", borderBottom: "1px solid #eee" }}>
@@ -551,12 +559,26 @@
                           <td style={{ padding: "7px 0", borderBottom: "1px solid #eee", textAlign: "right" }}>{fmt(getSonstigePreis(x))}</td>
                         </tr>
                       ))}
-                      <tr><td style={{ padding: "7px 0", borderBottom: "1px solid #eee" }}>Anfahrtspauschale ({km} km)</td><td style={{ padding: "7px 0", borderBottom: "1px solid #eee", textAlign: "right" }}>{fmt(anfahrt)}</td></tr>
+                      <tr><td style={{ padding: "7px 0", borderBottom: "1px solid #eee" }}>Rüst- und Anfahrtspauschale ({km} km)</td><td style={{ padding: "7px 0", borderBottom: "1px solid #eee", textAlign: "right" }}>{fmt(anfahrt)}</td></tr>
                       {rabattBetrag > 0 && <>
                         <tr style={{ color: "#c0392b" }}><td style={{ padding: "7px 0", borderBottom: "1px solid #eee" }}>Rabatt {rabatt} %</td><td style={{ padding: "7px 0", borderBottom: "1px solid #eee", textAlign: "right" }}>− {fmt(rabattBetrag)}</td></tr>
                         <tr style={{ color: "#555", fontSize: "11px" }}><td style={{ padding: "6px 0", borderBottom: "1px solid #eee" }}>Netto nach Rabatt</td><td style={{ padding: "6px 0", borderBottom: "1px solid #eee", textAlign: "right" }}>{fmt(nettoNachRabatt)}</td></tr>
                       </>}
-                      {mitMwst && <tr><td style={{ padding: "7px 0", borderBottom: "1px solid #eee" }}>MwSt. {mwstSatz} %</td><td style={{ padding: "7px 0", borderBottom: "1px solid #eee", textAlign: "right" }}>{fmt(mwstBetrag)}</td></tr>}
+                      {mitMwst && (
+                        <>
+                          <tr>
+                            <td colSpan={2} style={{ padding: "4px 0" }}></td>
+                          </tr>
+                          <tr style={{ borderTop: "1px solid #ccc" }}>
+                            <td style={{ padding: "8px 0 4px", fontSize: "0.85rem", color: "#444", fontWeight: 600 }}>Gesamt Netto</td>
+                            <td style={{ padding: "8px 0 4px", textAlign: "right", fontSize: "0.85rem", color: "#444", fontWeight: 600 }}>{fmt(nettoNachRabatt)}</td>
+                          </tr>
+                          <tr>
+                            <td style={{ padding: "4px 0", borderBottom: "1px solid #eee" }}>MwSt. {mwstSatz} %</td>
+                            <td style={{ padding: "4px 0", borderBottom: "1px solid #eee", textAlign: "right" }}>{fmt(mwstBetrag)}</td>
+                          </tr>
+                        </>
+                      )}
                     </tbody>
                   </table>
                   <table style={{ width: "100%", borderCollapse: "collapse", marginTop: 4 }}>
