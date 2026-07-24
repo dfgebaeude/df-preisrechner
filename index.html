@@ -92,7 +92,11 @@
       const [mitMwst, setMitMwst] = useState(false);
       const [baum2, setBaum2] = useState(0);
       const BAU_PREIS = 3.20;
-      const [sonstige, setSonstige] = useState([{ id: 1, bezeichnung: "", preis: "" }]);
+      const [sonstige, setSonstige] = useState([{ id: 1, typ: "fest", bezeichnung: "", preis: "" }]);
+
+      const getSonstigePreis = x => x.typ === "stunden"
+        ? (parseFloat(x.stundenlohn) || 0) * (parseFloat(x.stunden) || 1)
+        : (parseFloat(x.preis) || 0);
       const [rabatt, setRabatt] = useState(0);
       const [showPrint, setShowPrint] = useState(false);
       const [shareMsg, setShareMsg] = useState("");
@@ -106,10 +110,14 @@
         .map(p => { const s = fenster[p.id]; const ep = calcEP(p, s); return { ...p, s, ep, summe: s.anzahl * ep }; })
         .filter(x => x.s.anzahl > 0);
 
-      const addSonstige = () => setSonstige(p => [...p, { id: Date.now(), bezeichnung: "", preis: "" }]);
+      const addSonst = (typ) => setSonstige(p => [...p,
+        typ === "stunden"
+          ? { id: Date.now(), typ: "stunden", bezeichnung: "", stundenlohn: "", stunden: 1 }
+          : { id: Date.now(), typ: "fest", bezeichnung: "", preis: "" }
+      ]);
       const removeSonstige = id => setSonstige(p => p.filter(x => x.id !== id));
       const updSonstige = (id, f, v) => setSonstige(p => p.map(x => x.id === id ? { ...x, [f]: v } : x));
-      const sonstigeSumme = sonstige.reduce((a, x) => a + (parseFloat(x.preis) || 0), 0);
+      const sonstigeSumme = sonstige.reduce((a, x) => a + getSonstigePreis(x), 0);
 
       const bauSumme = baum2 * BAU_PREIS;
       const netto = aktivePositionen.reduce((a, x) => a + x.summe, 0) + bauSumme + sonstigeSumme;
@@ -125,7 +133,11 @@
           return `${x.s.anzahl}x ${x.label}${tags.length ? ` (${tags.join(", ")})` : ""}: ${fmt(x.summe)}`;
         }).join("\n");
         const bauLine = bauSumme > 0 ? `Bauendreinigung ${baum2} m²: ${fmt(bauSumme)}` : "";
-        const sonstigeLines = sonstige.filter(x => parseFloat(x.preis) > 0).map(x => `${x.bezeichnung || "Sonstige Leistung"}: ${fmt(parseFloat(x.preis))}`).join("\n");
+        const sonstigeLines = sonstige.filter(x => getSonstigePreis(x) > 0).map(x => {
+          const p = getSonstigePreis(x);
+          const detail = x.typ === "stunden" ? ` (${x.stunden} Std. × ${fmt(parseFloat(x.stundenlohn))})` : "";
+          return `${x.bezeichnung || "Sonstige Leistung"}${detail}: ${fmt(p)}`;
+        }).join("\n");
         const rabattLine = rabattBetrag > 0 ? `Rabatt ${rabatt}%: - ${fmt(rabattBetrag)}\nNetto nach Rabatt: ${fmt(nettoNachRabatt)}` : "";
         const mwstLine = mitMwst ? `MwSt. ${mwstSatz}%: ${fmt(mwstBetrag)}\nGesamt (Brutto): ${fmt(bruttoGesamt)}` : `Gesamt (Netto): ${fmt(bruttoGesamt)}`;
 
@@ -188,7 +200,7 @@
             {/* Header */}
             <div style={{ background: "#1c2b1e", borderRadius: 6, padding: "18px 22px", marginBottom: 14 }}>
               <div style={{ color: "#7aaa7a", fontSize: "0.6rem", letterSpacing: "0.2em", textTransform: "uppercase", fontFamily: "'Source Serif 4',serif", marginBottom: 4 }}>
-                Fensterreinigung & Bauendreinigung · Preisrechner
+                Fenster-, Sonder- und Bauendreinigung · Preisrechner
               </div>
               <h1 style={{ color: "#f4f1ec", fontFamily: "'Bebas Neue',sans-serif", fontSize: "2rem", letterSpacing: "0.04em" }}>
                 Angebot berechnen
@@ -291,22 +303,53 @@
 
             {/* Sonstige */}
             <div style={{ background: sonstigeSumme > 0 ? "#eef5ee" : "#fff", border: `1px solid ${sonstigeSumme > 0 ? "#a8c5a0" : "#ddd6c8"}`, borderRadius: 6, padding: "14px 18px", marginBottom: 12, transition: "all 0.15s" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, flexWrap: "wrap", gap: 8 }}>
                 <span style={{ background: "#1c2b1e", color: "#7aaa7a", borderRadius: 3, padding: "3px 8px", fontSize: "0.62rem", letterSpacing: "0.15em", textTransform: "uppercase" }}>Sonstige Leistungen</span>
-                <button onClick={addSonstige} style={{ background: "#1c2b1e", color: "#7aaa7a", border: "none", borderRadius: 4, padding: "6px 12px", fontSize: "0.8rem", cursor: "pointer" }}>+ Position hinzufügen</button>
+                <div style={{ display: "flex", gap: 6 }}>
+                  <button onClick={() => addSonst("fest")} style={{ background: "#1c2b1e", color: "#7aaa7a", border: "none", borderRadius: 4, padding: "6px 10px", fontSize: "0.78rem", cursor: "pointer" }}>+ Festpreis</button>
+                  <button onClick={() => addSonst("stunden")} style={{ background: "#1c2b1e", color: "#a8c5a0", border: "none", borderRadius: 4, padding: "6px 10px", fontSize: "0.78rem", cursor: "pointer" }}>+ Stundenleistung</button>
+                </div>
               </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                 {sonstige.map(item => (
-                  <div key={item.id} style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                    <input type="text" placeholder="Bezeichnung (z.B. Kellerreinigung)" value={item.bezeichnung} onChange={e => updSonstige(item.id, "bezeichnung", e.target.value)}
-                      style={{ flex: 1, padding: "8px 10px", border: "1px solid #ddd", borderRadius: 4, fontSize: "0.88rem", background: "#fafaf8" }} />
-                    <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                      <input type="number" min={0} step={0.01} placeholder="0,00" value={item.preis} onChange={e => updSonstige(item.id, "preis", e.target.value)}
-                        style={{ width: 80, padding: "8px 8px", border: "1px solid #ddd", borderRadius: 4, fontSize: "0.88rem", textAlign: "right", background: "#fafaf8" }} />
-                      <span style={{ fontSize: "0.82rem", color: "#888" }}>€</span>
-                    </div>
-                    {sonstige.length > 1 && (
-                      <button onClick={() => removeSonstige(item.id)} style={{ background: "none", border: "1px solid #eee", borderRadius: 4, color: "#bbb", cursor: "pointer", fontSize: "1rem", width: 32, height: 32 }}>✕</button>
+                  <div key={item.id}>
+                    {item.typ === "stunden" ? (
+                      <div style={{ background: "#f5f8ff", border: "1px solid #c8d8f0", borderRadius: 4, padding: "10px 12px" }}>
+                        <div style={{ fontSize: "0.65rem", color: "#6080b0", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 8 }}>Stundenleistung</div>
+                        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                          <input type="text" placeholder="Bezeichnung (z.B. Sonderreinigung Küche)" value={item.bezeichnung} onChange={e => updSonstige(item.id, "bezeichnung", e.target.value)}
+                            style={{ flex: "2 1 160px", padding: "8px 10px", border: "1px solid #c8d8f0", borderRadius: 4, fontSize: "0.88rem", background: "#fff" }} />
+                          <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                            <input type="number" min={0} step={0.5} placeholder="Stundenlohn" value={item.stundenlohn} onChange={e => updSonstige(item.id, "stundenlohn", e.target.value)}
+                              style={{ width: 90, padding: "8px 8px", border: "1px solid #c8d8f0", borderRadius: 4, fontSize: "0.88rem", textAlign: "right", background: "#fff" }} />
+                            <span style={{ fontSize: "0.78rem", color: "#888" }}>€/Std.</span>
+                          </div>
+                          <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                            <button onClick={() => updSonstige(item.id, "stunden", Math.max(0.5, (parseFloat(item.stunden) || 1) - 0.5))}
+                              style={{ width: 28, height: 28, border: "1px solid #c8d8f0", borderRadius: 4, background: "#fff", cursor: "pointer", fontSize: "1rem", color: "#555" }}>−</button>
+                            <input type="number" min={0.5} step={0.5} value={item.stunden} onChange={e => updSonstige(item.id, "stunden", Math.max(0.5, parseFloat(e.target.value) || 0.5))}
+                              style={{ width: 52, textAlign: "center", border: "1px solid #c8d8f0", borderRadius: 4, padding: "6px 4px", fontSize: "0.88rem", background: "#fff" }} />
+                            <button onClick={() => updSonstige(item.id, "stunden", (parseFloat(item.stunden) || 1) + 0.5)}
+                              style={{ width: 28, height: 28, border: "1px solid #c8d8f0", borderRadius: 4, background: "#fff", cursor: "pointer", fontSize: "1rem", color: "#555" }}>+</button>
+                            <span style={{ fontSize: "0.78rem", color: "#888" }}>Std.</span>
+                          </div>
+                          {getSonstigePreis(item) > 0 && <span style={{ fontWeight: 700, color: "#1c2b1e", fontSize: "0.95rem", marginLeft: 4 }}>{fmt(getSonstigePreis(item))}</span>}
+                          <button onClick={() => removeSonstige(item.id)} style={{ background: "none", border: "1px solid #eee", borderRadius: 4, color: "#bbb", cursor: "pointer", fontSize: "1rem", width: 28, height: 28, marginLeft: "auto" }}>✕</button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                        <input type="text" placeholder="Bezeichnung (z.B. Kellerreinigung)" value={item.bezeichnung} onChange={e => updSonstige(item.id, "bezeichnung", e.target.value)}
+                          style={{ flex: 1, padding: "8px 10px", border: "1px solid #ddd", borderRadius: 4, fontSize: "0.88rem", background: "#fafaf8" }} />
+                        <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                          <input type="number" min={0} step={0.01} placeholder="0,00" value={item.preis} onChange={e => updSonstige(item.id, "preis", e.target.value)}
+                            style={{ width: 80, padding: "8px 8px", border: "1px solid #ddd", borderRadius: 4, fontSize: "0.88rem", textAlign: "right", background: "#fafaf8" }} />
+                          <span style={{ fontSize: "0.82rem", color: "#888" }}>€</span>
+                        </div>
+                        {sonstige.length > 1 && (
+                          <button onClick={() => removeSonstige(item.id)} style={{ background: "none", border: "1px solid #eee", borderRadius: 4, color: "#bbb", cursor: "pointer", fontSize: "1rem", width: 32, height: 32 }}>✕</button>
+                        )}
+                      </div>
                     )}
                   </div>
                 ))}
@@ -326,6 +369,9 @@
                   Zusammenfassung {kunde.name && <span style={{ color: "#a8c5a0", marginLeft: 6 }}>· {kunde.name}{kunde.ort ? `, ${kunde.ort}` : ""}</span>}
                 </div>
 
+                {aktivePositionen.length > 0 && (
+                  <div style={{ fontSize: "0.65rem", color: "#7aaa7a", textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: 6, marginTop: 4 }}>Fenster</div>
+                )}
                 {aktivePositionen.map(x => {
                   const tags = [x.s.rahmen && "Rahmen", x.s.falz && "Falz", x.s.schwer && "schwer zugängl."].filter(Boolean);
                   return (
@@ -346,10 +392,13 @@
                   </div>
                 )}
 
-                {sonstige.filter(x => parseFloat(x.preis) > 0).map(x => (
+                {sonstige.filter(x => getSonstigePreis(x) > 0).map(x => (
                   <div key={x.id} style={{ display: "flex", justifyContent: "space-between", marginBottom: 7, gap: 12 }}>
-                    <span style={{ color: "#ccc", fontSize: "0.83rem" }}>{x.bezeichnung || "Sonstige Leistung"}</span>
-                    <span style={{ color: "#e8e0d0", fontSize: "0.83rem", flexShrink: 0 }}>{fmt(parseFloat(x.preis))}</span>
+                    <span style={{ color: "#ccc", fontSize: "0.83rem" }}>
+                      {x.bezeichnung || "Sonstige Leistung"}
+                      {x.typ === "stunden" && <span style={{ color: "#7aaa7a", fontSize: "0.72rem", marginLeft: 6 }}>({x.stunden} Std. × {fmt(parseFloat(x.stundenlohn))})</span>}
+                    </span>
+                    <span style={{ color: "#e8e0d0", fontSize: "0.83rem", flexShrink: 0 }}>{fmt(getSonstigePreis(x))}</span>
                   </div>
                 ))}
 
@@ -458,7 +507,7 @@
 
                 <div className="print-area" style={{ background: "#fff", borderRadius: 6, padding: "36px 40px", boxShadow: "0 4px 30px rgba(0,0,0,0.3)", fontFamily: "Georgia,serif", color: "#222", fontSize: "13px" }}>
                   <h1 style={{ fontSize: "24px", color: "#1c2b1e", margin: "0 0 2px" }}>Angebot</h1>
-                  <div style={{ fontSize: "10px", color: "#888", textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: 26 }}>DF Gebäudeservice · Fensterreinigung & Bauendreinigung</div>
+                  <div style={{ fontSize: "10px", color: "#888", textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: 26 }}>DF Gebäudeservice · Fenster-, Sonder- und Bauendreinigung</div>
 
                   {(kunde.name || kunde.strasse || kunde.ort) && (
                     <>
@@ -478,6 +527,11 @@
                       </tr>
                     </thead>
                     <tbody>
+                      {aktivePositionen.length > 0 && (
+                        <tr>
+                          <td colSpan={2} style={{ padding: "8px 0 4px", fontSize: "9px", textTransform: "uppercase", letterSpacing: "0.1em", color: "#888", fontWeight: 600 }}>Fenster</td>
+                        </tr>
+                      )}
                       {aktivePositionen.map(x => {
                         const tags = [x.s.rahmen && "Rahmen", x.s.falz && "Falz", x.s.schwer && "schwer zugängl."].filter(Boolean);
                         return (
@@ -488,8 +542,14 @@
                         );
                       })}
                       {bauSumme > 0 && <tr><td style={{ padding: "7px 0", borderBottom: "1px solid #eee" }}>Bauendreinigung – {baum2} m²</td><td style={{ padding: "7px 0", borderBottom: "1px solid #eee", textAlign: "right" }}>{fmt(bauSumme)}</td></tr>}
-                      {sonstige.filter(x => parseFloat(x.preis) > 0).map(x => (
-                        <tr key={x.id}><td style={{ padding: "7px 0", borderBottom: "1px solid #eee" }}>{x.bezeichnung || "Sonstige Leistung"}</td><td style={{ padding: "7px 0", borderBottom: "1px solid #eee", textAlign: "right" }}>{fmt(parseFloat(x.preis))}</td></tr>
+                      {sonstige.filter(x => getSonstigePreis(x) > 0).map(x => (
+                        <tr key={x.id}>
+                          <td style={{ padding: "7px 0", borderBottom: "1px solid #eee" }}>
+                            {x.bezeichnung || "Sonstige Leistung"}
+                            {x.typ === "stunden" && <span style={{ color: "#888", fontSize: "11px" }}> ({x.stunden} Std. × {fmt(parseFloat(x.stundenlohn))})</span>}
+                          </td>
+                          <td style={{ padding: "7px 0", borderBottom: "1px solid #eee", textAlign: "right" }}>{fmt(getSonstigePreis(x))}</td>
+                        </tr>
                       ))}
                       <tr><td style={{ padding: "7px 0", borderBottom: "1px solid #eee" }}>Anfahrtspauschale ({km} km)</td><td style={{ padding: "7px 0", borderBottom: "1px solid #eee", textAlign: "right" }}>{fmt(anfahrt)}</td></tr>
                       {rabattBetrag > 0 && <>
