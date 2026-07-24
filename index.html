@@ -109,49 +109,86 @@
             <thead>
               <tr>
                 <th style={{ fontSize: "10px", textTransform: "uppercase", color: "#888", borderBottom: "1px solid #ccc", padding: "6px 0", textAlign: "left", letterSpacing: "0.08em" }}>Bezeichnung</th>
+                <th style={{ fontSize: "10px", textTransform: "uppercase", color: "#888", borderBottom: "1px solid #ccc", padding: "6px 0", textAlign: "right", letterSpacing: "0.08em" }}>Menge</th>
                 <th style={{ fontSize: "10px", textTransform: "uppercase", color: "#888", borderBottom: "1px solid #ccc", padding: "6px 0", textAlign: "right", letterSpacing: "0.08em" }}>Betrag</th>
+                <th style={{ fontSize: "10px", textTransform: "uppercase", color: "#888", borderBottom: "1px solid #ccc", padding: "6px 0", textAlign: "right", letterSpacing: "0.08em", paddingLeft: 16 }}>Gesamt</th>
               </tr>
             </thead>
             <tbody>
-              {aktivePositionen.length > 0 && <tr><td colSpan={2} style={{ padding: "8px 0 4px", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.08em", color: "#888", fontWeight: 600 }}>Glas- und Fensterreinigung</td></tr>}
-              {aktivePositionen.map(x => {
-                const tags = [x.s.rahmen && "Rahmen", x.s.falz && "Falz", x.s.schwer && "schwer zugängl."].filter(Boolean);
-                return (
-                  <tr key={x.id}>
-                    <td style={{ padding: "7px 0", borderBottom: "1px solid #eee" }}>{x.s.anzahl}× {x.label}{tags.length > 0 && <span style={{ color: "#888", fontSize: "11px" }}> ({tags.join(", ")})</span>}</td>
-                    <td style={{ padding: "7px 0", borderBottom: "1px solid #eee", textAlign: "right" }}>{fmt(x.summe)}</td>
+              {(() => {
+                const fensterSumme = aktivePositionen.reduce((a, x) => a + x.summe, 0);
+                const m2Gesamt = bauSumme + freiM2Summe;
+                const sonstigeGesamt = sonstigeSumme + anfahrt;
+                const gruppenHeader = (titel, summe) => (
+                  <tr key={titel}>
+                    <td colSpan={3} style={{ padding: "10px 0 3px", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.08em", color: "#444", fontWeight: 700 }}>{titel}</td>
+                    <td style={{ padding: "10px 0 3px", textAlign: "right", fontSize: "12px", fontWeight: 700, color: "#1c2b1e", paddingLeft: 16 }}>{fmt(summe)}</td>
                   </tr>
                 );
-              })}
-              {(bauSumme > 0 || freiM2Summe > 0) && <tr><td colSpan={2} style={{ padding: "10px 0 4px", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.08em", color: "#888", fontWeight: 600 }}>m²-Leistungen</td></tr>}
-              {bauSumme > 0 && <tr><td style={{ padding: "7px 0", borderBottom: "1px solid #eee" }}>Bauendreinigung – {baum2} m²</td><td style={{ padding: "7px 0", borderBottom: "1px solid #eee", textAlign: "right" }}>{fmt(bauSumme)}</td></tr>}
-              {freiM2.filter(x => (parseFloat(x.preis)||0)*(parseFloat(x.m2)||0) > 0).map(x => (
-                <tr key={x.id}>
-                  <td style={{ padding: "7px 0", borderBottom: "1px solid #eee" }}>{x.bezeichnung || "m²-Leistung"} – {x.m2} m² <span style={{ color: "#888", fontSize: "11px" }}>({fmt(parseFloat(x.preis))}/m²)</span></td>
-                  <td style={{ padding: "7px 0", borderBottom: "1px solid #eee", textAlign: "right" }}>{fmt((parseFloat(x.preis)||0)*(parseFloat(x.m2)||0))}</td>
-                </tr>
-              ))}
-              {sonstige.filter(x => getSonstigePreis(x) > 0).length > 0 && <tr><td colSpan={2} style={{ padding: "10px 0 4px", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.08em", color: "#888", fontWeight: 600 }}>Sonstige Leistungen</td></tr>}
-              {sonstige.filter(x => getSonstigePreis(x) > 0).map(x => (
-                <tr key={x.id}>
-                  <td style={{ padding: "7px 0", borderBottom: "1px solid #eee" }}>
-                    {x.bezeichnung || "Sonstige Leistung"}
-                    {x.typ === "stunden" && <span style={{ color: "#888", fontSize: "11px" }}> ({x.stunden} Std. × {fmt(parseFloat(x.stundenlohn))})</span>}
-                  </td>
-                  <td style={{ padding: "7px 0", borderBottom: "1px solid #eee", textAlign: "right" }}>{fmt(getSonstigePreis(x))}</td>
-                </tr>
-              ))}
-              <tr><td colSpan={2} style={{ padding: "10px 0 4px", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.08em", color: "#888", fontWeight: 600 }}>Sonstiges</td></tr>
-              <tr><td style={{ padding: "7px 0", borderBottom: "1px solid #eee" }}>Rüst- und Anfahrtspauschale ({km} km)</td><td style={{ padding: "7px 0", borderBottom: "1px solid #eee", textAlign: "right" }}>{fmt(anfahrt)}</td></tr>
-              {rabattBetrag > 0 && <>
-                <tr style={{ color: "#c0392b" }}><td style={{ padding: "7px 0", borderBottom: "1px solid #eee" }}>Rabatt {rabatt} %</td><td style={{ padding: "7px 0", borderBottom: "1px solid #eee", textAlign: "right" }}>− {fmt(rabattBetrag)}</td></tr>
-                <tr style={{ color: "#555", fontSize: "11px" }}><td style={{ padding: "6px 0", borderBottom: "1px solid #eee" }}>Netto nach Rabatt</td><td style={{ padding: "6px 0", borderBottom: "1px solid #eee", textAlign: "right" }}>{fmt(nettoNachRabatt)}</td></tr>
-              </>}
-              {mitMwst && <>
-                <tr><td colSpan={2} style={{ padding: "4px 0" }}></td></tr>
-                <tr><td style={{ padding: "8px 0 4px", fontWeight: 600 }}>Gesamt Netto</td><td style={{ padding: "8px 0 4px", textAlign: "right", fontWeight: 600 }}>{fmt(nettoNachRabatt)}</td></tr>
-                <tr><td style={{ padding: "4px 0", borderBottom: "1px solid #eee" }}>MwSt. {mwstSatz} %</td><td style={{ padding: "4px 0", borderBottom: "1px solid #eee", textAlign: "right" }}>{fmt(mwstBetrag)}</td></tr>
-              </>}
+                const itemRow = (key, label, menge, preis, extra) => (
+                  <tr key={key}>
+                    <td style={{ padding: "5px 0 5px 10px", borderBottom: "1px solid #f0f0f0", fontSize: "12px", color: "#333" }}>
+                      {label}{extra && <span style={{ color: "#888", fontSize: "10px" }}> {extra}</span>}
+                    </td>
+                    <td style={{ padding: "5px 0", borderBottom: "1px solid #f0f0f0", textAlign: "right", fontSize: "12px", color: "#555", whiteSpace: "nowrap" }}>{menge}</td>
+                    <td style={{ padding: "5px 0", borderBottom: "1px solid #f0f0f0", textAlign: "right", fontSize: "12px", color: "#333", whiteSpace: "nowrap" }}>{fmt(preis)}</td>
+                    <td style={{ padding: "5px 0", borderBottom: "1px solid #f0f0f0", paddingLeft: 16 }}></td>
+                  </tr>
+                );
+                return (<>
+                  {/* Glas- und Fensterreinigung */}
+                  {aktivePositionen.length > 0 && <>
+                    {gruppenHeader("Glas- und Fensterreinigung", fensterSumme)}
+                    {aktivePositionen.map(x => {
+                      const tags = [x.s.rahmen && "Rahmen", x.s.falz && "Falz", x.s.schwer && "schwer zugängl."].filter(Boolean);
+                      return itemRow(x.id, x.label, `${x.s.anzahl} Stück`, x.summe, tags.length > 0 ? `(${tags.join(", ")})` : null);
+                    })}
+                  </>}
+
+                  {/* m²-Leistungen */}
+                  {m2Gesamt > 0 && <>
+                    {gruppenHeader("m²-Leistungen", m2Gesamt)}
+                    {bauSumme > 0 && itemRow("bau", "Bauendreinigung", `${baum2} m²`, bauSumme)}
+                    {freiM2.filter(x => (parseFloat(x.preis)||0)*(parseFloat(x.m2)||0) > 0).map(x =>
+                      itemRow(x.id, x.bezeichnung || "m²-Leistung", `${x.m2} m²`, (parseFloat(x.preis)||0)*(parseFloat(x.m2)||0))
+                    )}
+                  </>}
+
+                  {/* Sonstiges */}
+                  {sonstigeGesamt > 0 && <>
+                    {gruppenHeader("Sonstiges", sonstigeGesamt)}
+                    {sonstige.filter(x => getSonstigePreis(x) > 0).map(x =>
+                      itemRow(x.id, x.bezeichnung || "Sonstige Leistung", x.typ === "stunden" ? `${x.stunden} Std.` : "1 Psch.", getSonstigePreis(x))
+                    )}
+                    {itemRow("anfahrt", `Rüst- und Anfahrtspauschale (${km} km)`, "1 Stück", anfahrt)}
+                  </>}
+
+                  {/* Rabatt */}
+                  {rabattBetrag > 0 && <>
+                    <tr style={{ color: "#c0392b" }}>
+                      <td colSpan={3} style={{ padding: "7px 0", borderBottom: "1px solid #eee" }}>Rabatt {rabatt} %</td>
+                      <td style={{ padding: "7px 0", borderBottom: "1px solid #eee", textAlign: "right", paddingLeft: 16 }}>− {fmt(rabattBetrag)}</td>
+                    </tr>
+                    <tr style={{ color: "#555", fontSize: "11px" }}>
+                      <td colSpan={3} style={{ padding: "6px 0", borderBottom: "1px solid #eee" }}>Netto nach Rabatt</td>
+                      <td style={{ padding: "6px 0", borderBottom: "1px solid #eee", textAlign: "right", paddingLeft: 16 }}>{fmt(nettoNachRabatt)}</td>
+                    </tr>
+                  </>}
+
+                  {/* MwSt */}
+                  {mitMwst && <>
+                    <tr><td colSpan={4} style={{ padding: "4px 0" }}></td></tr>
+                    <tr>
+                      <td colSpan={3} style={{ padding: "8px 0 4px", fontWeight: 600 }}>Gesamt Netto</td>
+                      <td style={{ padding: "8px 0 4px", textAlign: "right", fontWeight: 600, paddingLeft: 16 }}>{fmt(nettoNachRabatt)}</td>
+                    </tr>
+                    <tr>
+                      <td colSpan={3} style={{ padding: "4px 0", borderBottom: "1px solid #eee" }}>MwSt. {mwstSatz} %</td>
+                      <td style={{ padding: "4px 0", borderBottom: "1px solid #eee", textAlign: "right", paddingLeft: 16 }}>{fmt(mwstBetrag)}</td>
+                    </tr>
+                  </>}
+                </>);
+              })()}
             </tbody>
           </table>
           <table style={{ width: "100%", borderCollapse: "collapse", marginTop: 4 }}>
