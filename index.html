@@ -118,6 +118,7 @@
               {(() => {
                 const fensterSumme = aktivePositionen.reduce((a, x) => a + x.summe, 0);
                 const m2Gesamt = bauSumme + freiM2Summe;
+                const sonstigeSumme = sonstige.reduce((a, x) => a + getSonstigePreis(x), 0);
                 const sonstigeGesamt = sonstigeSumme + anfahrt;
                 const gruppenHeader = (titel, summe) => (
                   <tr key={titel}>
