@@ -10,17 +10,17 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-title" content="DF Preisrechner" />
   <link rel="apple-touch-icon" href="./icon.svg" />
-  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Source+Serif+4:wght@400;600&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { background: #f4f1ec; font-family: Georgia, serif; }
-    input, textarea, select, button { font-family: Georgia, serif; }
+    body { background: #f4f1ec; font-family: 'Inter', sans-serif; }
+    input, textarea, select, button { font-family: 'Inter', sans-serif; }
     #print-root { display: none; }
     @media print {
       #root { display: none !important; }
       #print-root {
         display: block !important;
-        font-family: Georgia, serif;
+        font-family: 'Inter', sans-serif;
         color: #222;
         font-size: 13px;
         padding: 30px 40px;
@@ -85,8 +85,8 @@
 
     function InvoiceContent({ kunde, aktivePositionen, bauSumme, baum2, BAU_PREIS, freiM2, freiM2Summe, sonstige, getSonstigePreis, km, anfahrt, rabattBetrag, rabatt, nettoNachRabatt, mitMwst, mwstSatz, mwstBetrag, bruttoGesamt, fmt, screen }) {
       const wrap = screen
-        ? { background: "#fff", borderRadius: 6, padding: "36px 40px", boxShadow: "0 4px 30px rgba(0,0,0,0.3)", fontFamily: "Georgia,serif", color: "#222", fontSize: "13px" }
-        : { fontFamily: "Georgia,serif", color: "#222", fontSize: "13px" };
+        ? { background: "#fff", borderRadius: 6, padding: "36px 40px", boxShadow: "0 4px 30px rgba(0,0,0,0.3)", fontFamily: "'Inter', sans-serif", color: "#222", fontSize: "13px" }
+        : { fontFamily: "'Inter', sans-serif", color: "#222", fontSize: "13px" };
       return (
         <div style={wrap}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24 }}>
@@ -104,7 +104,7 @@
               </div>
             </>
           )}
-          <div style={{ fontSize: "9px", textTransform: "uppercase", letterSpacing: "0.14em", color: "#888", marginBottom: 6 }}>Leistungen</div>
+
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr>
@@ -113,7 +113,7 @@
               </tr>
             </thead>
             <tbody>
-              {aktivePositionen.length > 0 && <tr><td colSpan={2} style={{ padding: "8px 0 4px", fontSize: "9px", textTransform: "uppercase", letterSpacing: "0.1em", color: "#888", fontWeight: 600 }}>Fenster</td></tr>}
+              {aktivePositionen.length > 0 && <tr><td colSpan={2} style={{ padding: "8px 0 4px", fontSize: "9px", textTransform: "uppercase", letterSpacing: "0.1em", color: "#888", fontWeight: 600 }}>Glas- und Fensterreinigung</td></tr>}
               {aktivePositionen.map(x => {
                 const tags = [x.s.rahmen && "Rahmen", x.s.falz && "Falz", x.s.schwer && "schwer zugängl."].filter(Boolean);
                 return (
@@ -289,12 +289,12 @@
       const btn = (bg, border, color) => ({ padding: "13px 10px", background: bg, border: `1px solid ${border}`, borderRadius: 4, color, fontSize: "0.85rem", fontWeight: 600, textAlign: "center", cursor: "pointer", userSelect: "none" });
 
       return (
-        <div style={{ minHeight: "100vh", background: "#f4f1ec", padding: "16px 12px 40px", fontFamily: "Georgia, serif" }}>
+        <div style={{ minHeight: "100vh", background: "#f4f1ec", padding: "16px 12px 40px", fontFamily: "'Inter', sans-serif" }}>
           <div style={{ maxWidth: 680, margin: "0 auto" }}>
 
             {/* Header */}
             <div style={{ background: "#1c2b1e", borderRadius: 6, padding: "18px 22px", marginBottom: 14 }}>
-              <div style={{ color: "#7aaa7a", fontSize: "0.6rem", letterSpacing: "0.2em", textTransform: "uppercase", fontFamily: "'Source Serif 4',serif", marginBottom: 4 }}>
+              <div style={{ color: "#7aaa7a", fontSize: "0.6rem", letterSpacing: "0.2em", textTransform: "uppercase", fontFamily: "'Inter', sans-serif", marginBottom: 4 }}>
                 Fenster-, Sonder- und Bauendreinigung · Preisrechner
               </div>
               <h1 style={{ color: "#f4f1ec", fontFamily: "'Bebas Neue',sans-serif", fontSize: "2rem", letterSpacing: "0.04em" }}>
@@ -503,12 +503,12 @@
             {/* Zusammenfassung */}
             {netto > 0 && (
               <div style={{ background: "#1c2b1e", borderRadius: 6, padding: "20px 22px", marginBottom: 14 }}>
-                <div style={{ color: "#7aaa7a", fontSize: "0.6rem", letterSpacing: "0.18em", textTransform: "uppercase", fontFamily: "'Source Serif 4',serif", marginBottom: 12 }}>
+                <div style={{ color: "#7aaa7a", fontSize: "0.6rem", letterSpacing: "0.18em", textTransform: "uppercase", fontFamily: "'Inter', sans-serif", marginBottom: 12 }}>
                   Zusammenfassung {kunde.name && <span style={{ color: "#a8c5a0", marginLeft: 6 }}>· {kunde.name}{kunde.ort ? `, ${kunde.ort}` : ""}</span>}
                 </div>
 
                 {aktivePositionen.length > 0 && (
-                  <div style={{ fontSize: "0.65rem", color: "#7aaa7a", textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: 6, marginTop: 4 }}>Fenster</div>
+                  <div style={{ fontSize: "0.65rem", color: "#7aaa7a", textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: 6, marginTop: 4 }}>Glas- und Fensterreinigung</div>
                 )}
                 {aktivePositionen.map(x => {
                   const tags = [x.s.rahmen && "Rahmen", x.s.falz && "Falz", x.s.schwer && "schwer zugängl."].filter(Boolean);
