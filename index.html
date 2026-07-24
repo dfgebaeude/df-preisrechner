@@ -89,8 +89,13 @@
         : { fontFamily: "Georgia,serif", color: "#222", fontSize: "13px" };
       return (
         <div style={wrap}>
-          <h1 style={{ fontSize: "24px", color: "#1c2b1e", margin: "0 0 2px" }}>Angebot</h1>
-          <div style={{ fontSize: "10px", color: "#888", textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: 26 }}>DF Gebäudeservice · Fenster-, Sonder- und Bauendreinigung</div>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24 }}>
+            <img src="./logo.png" alt="DF Gebäudeservice" style={{ height: 60, width: "auto" }} />
+            <div style={{ textAlign: "right" }}>
+              <h1 style={{ fontSize: "24px", color: "#1c2b1e", margin: "0 0 2px" }}>Angebot</h1>
+              <div style={{ fontSize: "10px", color: "#888", textTransform: "uppercase", letterSpacing: "0.12em" }}>DF Gebäudeservice · Fenster-, Sonder- und Bauendreinigung</div>
+            </div>
+          </div>
           {(kunde.name || kunde.strasse || kunde.ort) && (
             <>
               <div style={{ fontSize: "9px", textTransform: "uppercase", letterSpacing: "0.14em", color: "#888", marginBottom: 5 }}>Kunde</div>
