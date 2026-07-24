@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <title>DF Preisrechner</title>
+  <link rel="manifest" href="./manifest.json" />
+  <meta name="theme-color" content="#1c2b1e" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="DF Preisrechner" />
+  <link rel="apple-touch-icon" href="./icon.svg" />
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Source+Serif+4:wght@400;600&display=swap" rel="stylesheet" />
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #f4f1ec; font-family: Georgia, serif; }
+    input, textarea, select, button { font-family: Georgia, serif; }
+    @media print {
+      .no-print { display: none !important; }
+      .print-area { box-shadow: none !important; border-radius: 0 !important; max-width: 100% !important; }
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <script type="text/babel">
+    const { useState } = React;
+
+    const PREISE = [
+      { id: "einfach_s",  label: "Einfach S",            netto: 2.75, rahmen: 0.5,  falz: 0.75 },
+      { id: "einfach_m",  label: "Einfach M",            netto: 4.75, rahmen: 0.5,  falz: 0.75 },
+      { id: "einfach_l",  label: "Einfach L",            netto: 5.75, rahmen: 0.5,  falz: 0.75 },
+      { id: "doppel_s",   label: "Doppel S",             netto: 3.75, rahmen: 0.5,  falz: 0.75 },
+      { id: "doppel_m",   label: "Doppel M",             netto: 6.75, rahmen: 0.5,  falz: 0.75 },
+      { id: "doppel_l",   label: "Doppel L",             netto: 7.75, rahmen: 0.5,  falz: 0.75 },
+      { id: "sonder",     label: "Sonderformfenster",    netto: 5,    rahmen: null,  falz: null  },
+      { id: "xl",         label: "XL-Fenster",           netto: 8.25, rahmen: 0.75, falz: 1.00 },
+      { id: "terrasse_1", label: "Terrassentür einfach", netto: 7.25, rahmen: 0.75, falz: 1.00 },
+      { id: "terrasse_2", label: "Terrassentür doppelt", netto: 11.25,rahmen: 0.75, falz: 1.00 },
+      { id: "tuer",       label: "Tür mit Verglasung",   netto: 5.75, rahmen: 0.75, falz: 1.00 },
+      { id: "dach",       label: "Dachfenster",          netto: 5.25, rahmen: 0.75, falz: 1.00 },
+    ];
+
+    const fmt = n => new Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR", minimumFractionDigits: 2 }).format(n);
+    const mkDefault = () => ({ anzahl: 0, rahmen: false, falz: false, schwer: false });
+
+    function calcEP(p, s) {
+      let ep = p.netto;
+      if (s.rahmen && p.rahmen) ep += p.rahmen;
+      if (s.falz && p.falz) ep += p.falz;
+      if (s.schwer) ep *= 1.25;
+      return ep;
+    }
+
+    function Checkbox({ checked, onChange, label }) {
+      return (
+        <div onClick={() => onChange(!checked)}
+          style={{ display: "flex", alignItems: "center", gap: 5, cursor: "pointer", userSelect: "none" }}>
+          <div style={{
+            width: 18, height: 18, borderRadius: 3, flexShrink: 0,
+            border: `2px solid ${checked ? "#1c2b1e" : "#bbb"}`,
+            background: checked ? "#1c2b1e" : "#fff",
+            display: "flex", alignItems: "center", justifyContent: "center"
+          }}>
+            {checked && <span style={{ color: "#fff", fontSize: 12, lineHeight: 1 }}>✓</span>}
+          </div>
+          <span style={{ fontSize: "0.8rem", color: "#555", whiteSpace: "nowrap" }}>{label}</span>
+        </div>
+      );
+    }
+
+    function App() {
+      const [fenster, setFenster] = useState(() =>
+        Object.fromEntries(PREISE.map(p => [p.id, mkDefault()]))
+      );
+      const [km, setKm] = useState(0);
+      const [mwstSatz, setMwstSatz] = useState(19);
+      const [mitMwst, setMitMwst] = useState(false);
+      const [baum2, setBaum2] = useState(0);
+      const BAU_PREIS = 3.20;
+      const [sonstige, setSonstige] = useState([{ id: 1, bezeichnung: "", preis: "" }]);
+      const [rabatt, setRabatt] = useState(0);
+      const [showPrint, setShowPrint] = useState(false);
+      const [shareMsg, setShareMsg] = useState("");
+      const [kunde, setKunde] = useState({ name: "", strasse: "", plz: "", ort: "", telefon: "", email: "", notiz: "" });
+
+      const setK = (f, v) => setKunde(p => ({ ...p, [f]: v }));
+      const setF = (id, f, v) => setFenster(p => ({ ...p, [id]: { ...p[id], [f]: v } }));
+
+      const anfahrt = km <= 20 ? 15 : 25;
+      const aktivePositionen = PREISE
+        .map(p => { const s = fenster[p.id]; const ep = calcEP(p, s); return { ...p, s, ep, summe: s.anzahl * ep }; })
+        .filter(x => x.s.anzahl > 0);
+
+      const addSonstige = () => setSonstige(p => [...p, { id: Date.now(), bezeichnung: "", preis: "" }]);
+      const removeSonstige = id => setSonstige(p => p.filter(x => x.id !== id));
+      const updSonstige = (id, f, v) => setSonstige(p => p.map(x => x.id === id ? { ...x, [f]: v } : x));
+      const sonstigeSumme = sonstige.reduce((a, x) => a + (parseFloat(x.preis) || 0), 0);
+
+      const bauSumme = baum2 * BAU_PREIS;
+      const netto = aktivePositionen.reduce((a, x) => a + x.summe, 0) + bauSumme + sonstigeSumme;
+      const nettoGesamt = netto > 0 ? netto + anfahrt : 0;
+      const rabattBetrag = nettoGesamt * ((parseFloat(rabatt) || 0) / 100);
+      const nettoNachRabatt = nettoGesamt - rabattBetrag;
+      const mwstBetrag = nettoNachRabatt * (mwstSatz / 100);
+      const bruttoGesamt = nettoNachRabatt + (mitMwst ? mwstBetrag : 0);
+
+      const buildTexts = () => {
+        const lines = aktivePositionen.map(x => {
+          const tags = [x.s.rahmen && "Rahmen", x.s.falz && "Falz", x.s.schwer && "schwer zugängl."].filter(Boolean);
+          return `${x.s.anzahl}x ${x.label}${tags.length ? ` (${tags.join(", ")})` : ""}: ${fmt(x.summe)}`;
+        }).join("\n");
+        const bauLine = bauSumme > 0 ? `Bauendreinigung ${baum2} m²: ${fmt(bauSumme)}` : "";
+        const sonstigeLines = sonstige.filter(x => parseFloat(x.preis) > 0).map(x => `${x.bezeichnung || "Sonstige Leistung"}: ${fmt(parseFloat(x.preis))}`).join("\n");
+        const rabattLine = rabattBetrag > 0 ? `Rabatt ${rabatt}%: - ${fmt(rabattBetrag)}\nNetto nach Rabatt: ${fmt(nettoNachRabatt)}` : "";
+        const mwstLine = mitMwst ? `MwSt. ${mwstSatz}%: ${fmt(mwstBetrag)}\nGesamt (Brutto): ${fmt(bruttoGesamt)}` : `Gesamt (Netto): ${fmt(bruttoGesamt)}`;
+
+        const waText = [
+          `*Angebot – DF Gebäudeservice*`,
+          kunde.name ? `Kunde: ${kunde.name}` : null,
+          kunde.ort ? kunde.ort : null,
+          ``,
+          lines || null,
+          bauLine || null,
+          sonstigeLines || null,
+          `Anfahrt (${km} km): ${fmt(anfahrt)}`,
+          `──────────────────`,
+          `Netto: ${fmt(nettoGesamt)}`,
+          rabattLine || null,
+          mwstLine,
+          ``,
+          `*${mitMwst ? "Gesamt (Brutto)" : "Gesamt (Netto)"}: ${fmt(bruttoGesamt)}*`,
+          kunde.notiz ? `\nHinweis: ${kunde.notiz}` : null,
+          `\nDF Gebäudeservice`,
+        ].filter(x => x !== null).join("\n");
+
+        const emailBody = [
+          `Sehr geehrte/r ${kunde.name || "Damen und Herren"},`,
+          `\nhiermit erhalten Sie unser Angebot:\n`,
+          lines || null,
+          bauLine || null,
+          sonstigeLines || null,
+          `Anfahrtspauschale (${km} km): ${fmt(anfahrt)}`,
+          `──────────────────────────────`,
+          `Netto: ${fmt(nettoGesamt)}`,
+          rabattLine || null,
+          mwstLine,
+          `\nMit freundlichen Grüßen\nDF Gebäudeservice`,
+        ].filter(x => x !== null).join("\n");
+
+        const subject = `Angebot Reinigungsleistungen${kunde.name ? " – " + kunde.name : ""}`;
+        return { waText, emailBody, subject };
+      };
+
+      const doShare = async (text, title, fallbackMailto) => {
+        if (navigator.share) {
+          try {
+            await navigator.share({ title, text });
+            return;
+          } catch (e) { if (e.name === "AbortError") return; }
+        }
+        if (fallbackMailto) { window.location.href = fallbackMailto; return; }
+        setShareMsg("Teilen nicht verfügbar. Bitte Text manuell kopieren.");
+        setTimeout(() => setShareMsg(""), 3000);
+      };
+
+      const inp = { padding: "9px 11px", border: "1px solid #ddd", borderRadius: 4, fontSize: "0.9rem", color: "#222", background: "#fafaf8", width: "100%", outline: "none" };
+      const btn = (bg, border, color) => ({ padding: "13px 10px", background: bg, border: `1px solid ${border}`, borderRadius: 4, color, fontSize: "0.85rem", fontWeight: 600, textAlign: "center", cursor: "pointer", userSelect: "none" });
+
+      return (
+        <div style={{ minHeight: "100vh", background: "#f4f1ec", padding: "16px 12px 40px", fontFamily: "Georgia, serif" }}>
+          <div style={{ maxWidth: 680, margin: "0 auto" }}>
+
+            {/* Header */}
+            <div style={{ background: "#1c2b1e", borderRadius: 6, padding: "18px 22px", marginBottom: 14 }}>
+              <div style={{ color: "#7aaa7a", fontSize: "0.6rem", letterSpacing: "0.2em", textTransform: "uppercase", fontFamily: "'Source Serif 4',serif", marginBottom: 4 }}>
+                Fensterreinigung & Bauendreinigung · Preisrechner
+              </div>
+              <h1 style={{ color: "#f4f1ec", fontFamily: "'Bebas Neue',sans-serif", fontSize: "2rem", letterSpacing: "0.04em" }}>
+                Angebot berechnen
+              </h1>
+            </div>
+
+            {/* Kundendaten */}
+            <div style={{ background: "#fff", border: "1px solid #ddd6c8", borderRadius: 6, padding: "16px 18px", marginBottom: 12 }}>
+              <div style={{ background: "#1c2b1e", color: "#7aaa7a", borderRadius: 3, padding: "3px 8px", fontSize: "0.62rem", letterSpacing: "0.15em", textTransform: "uppercase", display: "inline-block", marginBottom: 12 }}>Kundendaten</div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                {[["name","Name / Firma","Max Mustermann","1/-1"],["strasse","Straße & Hausnr.","Musterstraße 12","1/-1"]].map(([f,l,p,gc]) => (
+                  <div key={f} style={{ gridColumn: gc }}>
+                    <label style={{ fontSize: "0.68rem", color: "#888", textTransform: "uppercase", letterSpacing: "0.09em", display: "block", marginBottom: 4 }}>{l}</label>
+                    <input value={kunde[f]} onChange={e => setK(f, e.target.value)} placeholder={p} style={inp} />
+                  </div>
+                ))}
+                {[["plz","PLZ","12345"],["ort","Ort","Musterstadt"],["telefon","Telefon","+49 151 ..."],["email","E-Mail","kunde@mail.de"]].map(([f,l,p]) => (
+                  <div key={f}>
+                    <label style={{ fontSize: "0.68rem", color: "#888", textTransform: "uppercase", letterSpacing: "0.09em", display: "block", marginBottom: 4 }}>{l}</label>
+                    <input value={kunde[f]} onChange={e => setK(f, e.target.value)} placeholder={p} style={inp} />
+                  </div>
+                ))}
+                <div style={{ gridColumn: "1/-1" }}>
+                  <label style={{ fontSize: "0.68rem", color: "#888", textTransform: "uppercase", letterSpacing: "0.09em", display: "block", marginBottom: 4 }}>Notiz</label>
+                  <textarea value={kunde.notiz} onChange={e => setK("notiz", e.target.value)} placeholder="z.B. 3. Stock, Termin, Hinweise..." rows={2} style={{ ...inp, resize: "vertical", lineHeight: 1.5 }} />
+                </div>
+              </div>
+            </div>
+
+            {/* Anfahrt */}
+            <div style={{ background: "#fff", border: "1px solid #ddd6c8", borderRadius: 6, padding: "12px 18px", marginBottom: 12, display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+              <span style={{ fontSize: "0.9rem", color: "#333" }}>Entfernung:</span>
+              <input type="number" min={0} value={km} onChange={e => setKm(Math.max(0, parseInt(e.target.value) || 0))}
+                style={{ width: 64, padding: "6px 8px", border: "1px solid #ccc", borderRadius: 4, fontSize: "0.95rem", textAlign: "center" }} />
+              <span style={{ fontSize: "0.85rem", color: "#777" }}>
+                km → Anfahrt: <strong style={{ color: "#1c2b1e" }}>{fmt(anfahrt)}</strong>
+                <span style={{ color: "#bbb", fontSize: "0.72rem", marginLeft: 6 }}>(≤20 km = 15 € / &gt;20 km = 25 €)</span>
+              </span>
+            </div>
+
+            {/* Bauendreinigung */}
+            <div style={{ background: baum2 > 0 ? "#eef5ee" : "#fff", border: `1px solid ${baum2 > 0 ? "#a8c5a0" : "#ddd6c8"}`, borderRadius: 6, padding: "14px 18px", marginBottom: 12, transition: "all 0.15s" }}>
+              <div style={{ background: "#1c2b1e", color: "#7aaa7a", borderRadius: 3, padding: "3px 8px", fontSize: "0.62rem", letterSpacing: "0.15em", textTransform: "uppercase", display: "inline-block", marginBottom: 10 }}>Bauendreinigung</div>
+              <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: "0.9rem", color: "#1c2b1e", fontWeight: baum2 > 0 ? 600 : 400 }}>Fläche in m²</div>
+                  <div style={{ fontSize: "0.72rem", color: "#999", marginTop: 2 }}>Preis: {fmt(BAU_PREIS)} / m²</div>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <button onClick={() => setBaum2(v => Math.max(0, v - 1))} style={{ width: 32, height: 32, border: "1px solid #ccc", borderRadius: 4, background: "#fff", cursor: "pointer", fontSize: "1.2rem", color: "#555" }}>−</button>
+                  <input type="number" min={0} value={baum2} onChange={e => setBaum2(Math.max(0, parseFloat(e.target.value) || 0))}
+                    style={{ width: 68, textAlign: "center", border: "1px solid #ccc", borderRadius: 4, padding: "6px 4px", fontSize: "0.95rem" }} />
+                  <button onClick={() => setBaum2(v => v + 1)} style={{ width: 32, height: 32, border: "1px solid #ccc", borderRadius: 4, background: "#fff", cursor: "pointer", fontSize: "1.2rem", color: "#555" }}>+</button>
+                  <span style={{ fontSize: "0.85rem", color: "#888" }}>m²</span>
+                </div>
+                {bauSumme > 0 && <div style={{ fontWeight: 700, color: "#1c2b1e", fontSize: "1rem" }}>{fmt(bauSumme)}</div>}
+              </div>
+            </div>
+
+            {/* Fenster-Karten */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 12 }}>
+              {PREISE.map(p => {
+                const s = fenster[p.id];
+                const ep = calcEP(p, s);
+                const aktiv = s.anzahl > 0;
+                return (
+                  <div key={p.id} style={{ background: aktiv ? "#eef5ee" : "#fff", border: `1px solid ${aktiv ? "#a8c5a0" : "#ddd6c8"}`, borderRadius: 6, padding: "12px 16px", transition: "all 0.15s" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                      <div style={{ minWidth: 150, flex: "1 1 150px" }}>
+                        <div style={{ fontSize: "0.92rem", fontWeight: aktiv ? 600 : 400, color: "#1c2b1e" }}>{p.label}</div>
+                        <div style={{ fontSize: "0.72rem", color: "#999", marginTop: 2 }}>Basis: {fmt(p.netto)}</div>
+                      </div>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 6, flex: "2 1 190px" }}>
+                        {p.rahmen !== null ? (
+                          <>
+                            <Checkbox checked={s.rahmen} onChange={v => setF(p.id, "rahmen", v)} label={`+ Rahmen (${fmt(p.rahmen)})`} />
+                            <Checkbox checked={s.falz} onChange={v => setF(p.id, "falz", v)} label={`+ Falz (${fmt(p.falz)})`} />
+                          </>
+                        ) : <span style={{ fontSize: "0.72rem", color: "#bbb", fontStyle: "italic" }}>Kein Rahmen/Falz</span>}
+                        <Checkbox checked={s.schwer} onChange={v => setF(p.id, "schwer", v)} label="Schwer zugänglich (+25%)" />
+                      </div>
+                      <div style={{ textAlign: "center", minWidth: 64 }}>
+                        <div style={{ fontSize: "0.62rem", color: "#aaa", textTransform: "uppercase" }}>Preis/Stk.</div>
+                        <div style={{ fontSize: "0.9rem", fontWeight: 600, color: "#333" }}>{fmt(ep)}</div>
+                      </div>
+                      <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                        <button onClick={() => setF(p.id, "anzahl", Math.max(0, s.anzahl - 1))} style={{ width: 32, height: 32, border: "1px solid #ccc", borderRadius: 4, background: "#fff", cursor: "pointer", fontSize: "1.2rem", color: "#555" }}>−</button>
+                        <input type="number" min={0} value={s.anzahl} onChange={e => setF(p.id, "anzahl", Math.max(0, parseInt(e.target.value) || 0))}
+                          style={{ width: 40, textAlign: "center", border: "1px solid #ccc", borderRadius: 4, padding: "5px 2px", fontSize: "0.9rem" }} />
+                        <button onClick={() => setF(p.id, "anzahl", s.anzahl + 1)} style={{ width: 32, height: 32, border: "1px solid #ccc", borderRadius: 4, background: "#fff", cursor: "pointer", fontSize: "1.2rem", color: "#555" }}>+</button>
+                      </div>
+                      <div style={{ minWidth: 72, textAlign: "right" }}>
+                        {aktiv ? <><div style={{ fontSize: "0.62rem", color: "#aaa", textTransform: "uppercase" }}>Summe</div><div style={{ fontSize: "1rem", fontWeight: 700, color: "#1c2b1e" }}>{fmt(s.anzahl * ep)}</div></> : <span style={{ color: "#ccc" }}>—</span>}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Sonstige */}
+            <div style={{ background: sonstigeSumme > 0 ? "#eef5ee" : "#fff", border: `1px solid ${sonstigeSumme > 0 ? "#a8c5a0" : "#ddd6c8"}`, borderRadius: 6, padding: "14px 18px", marginBottom: 12, transition: "all 0.15s" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                <span style={{ background: "#1c2b1e", color: "#7aaa7a", borderRadius: 3, padding: "3px 8px", fontSize: "0.62rem", letterSpacing: "0.15em", textTransform: "uppercase" }}>Sonstige Leistungen</span>
+                <button onClick={addSonstige} style={{ background: "#1c2b1e", color: "#7aaa7a", border: "none", borderRadius: 4, padding: "6px 12px", fontSize: "0.8rem", cursor: "pointer" }}>+ Position hinzufügen</button>
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {sonstige.map(item => (
+                  <div key={item.id} style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                    <input type="text" placeholder="Bezeichnung (z.B. Kellerreinigung)" value={item.bezeichnung} onChange={e => updSonstige(item.id, "bezeichnung", e.target.value)}
+                      style={{ flex: 1, padding: "8px 10px", border: "1px solid #ddd", borderRadius: 4, fontSize: "0.88rem", background: "#fafaf8" }} />
+                    <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                      <input type="number" min={0} step={0.01} placeholder="0,00" value={item.preis} onChange={e => updSonstige(item.id, "preis", e.target.value)}
+                        style={{ width: 80, padding: "8px 8px", border: "1px solid #ddd", borderRadius: 4, fontSize: "0.88rem", textAlign: "right", background: "#fafaf8" }} />
+                      <span style={{ fontSize: "0.82rem", color: "#888" }}>€</span>
+                    </div>
+                    {sonstige.length > 1 && (
+                      <button onClick={() => removeSonstige(item.id)} style={{ background: "none", border: "1px solid #eee", borderRadius: 4, color: "#bbb", cursor: "pointer", fontSize: "1rem", width: 32, height: 32 }}>✕</button>
+                    )}
+                  </div>
+                ))}
+              </div>
+              {sonstigeSumme > 0 && (
+                <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 10, paddingTop: 10, borderTop: "1px solid #e8e0d0" }}>
+                  <span style={{ fontSize: "0.72rem", color: "#aaa", marginRight: 8, alignSelf: "center" }}>Summe Sonstiges</span>
+                  <span style={{ fontSize: "1rem", color: "#1c2b1e", fontWeight: 700 }}>{fmt(sonstigeSumme)}</span>
+                </div>
+              )}
+            </div>
+
+            {/* Zusammenfassung */}
+            {netto > 0 && (
+              <div style={{ background: "#1c2b1e", borderRadius: 6, padding: "20px 22px", marginBottom: 14 }}>
+                <div style={{ color: "#7aaa7a", fontSize: "0.6rem", letterSpacing: "0.18em", textTransform: "uppercase", fontFamily: "'Source Serif 4',serif", marginBottom: 12 }}>
+                  Zusammenfassung {kunde.name && <span style={{ color: "#a8c5a0", marginLeft: 6 }}>· {kunde.name}{kunde.ort ? `, ${kunde.ort}` : ""}</span>}
+                </div>
+
+                {aktivePositionen.map(x => {
+                  const tags = [x.s.rahmen && "Rahmen", x.s.falz && "Falz", x.s.schwer && "schwer zugängl."].filter(Boolean);
+                  return (
+                    <div key={x.id} style={{ display: "flex", justifyContent: "space-between", marginBottom: 7, gap: 12 }}>
+                      <span style={{ color: "#ccc", fontSize: "0.83rem" }}>
+                        {x.s.anzahl}× {x.label}
+                        {tags.length > 0 && <span style={{ color: "#7aaa7a", fontSize: "0.72rem", marginLeft: 6 }}>({tags.join(", ")})</span>}
+                      </span>
+                      <span style={{ color: "#e8e0d0", fontSize: "0.83rem", flexShrink: 0 }}>{fmt(x.summe)}</span>
+                    </div>
+                  );
+                })}
+
+                {bauSumme > 0 && (
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 7, gap: 12 }}>
+                    <span style={{ color: "#ccc", fontSize: "0.83rem" }}>Bauendreinigung {baum2} m² <span style={{ color: "#7aaa7a", fontSize: "0.72rem" }}>({fmt(BAU_PREIS)}/m²)</span></span>
+                    <span style={{ color: "#e8e0d0", fontSize: "0.83rem", flexShrink: 0 }}>{fmt(bauSumme)}</span>
+                  </div>
+                )}
+
+                {sonstige.filter(x => parseFloat(x.preis) > 0).map(x => (
+                  <div key={x.id} style={{ display: "flex", justifyContent: "space-between", marginBottom: 7, gap: 12 }}>
+                    <span style={{ color: "#ccc", fontSize: "0.83rem" }}>{x.bezeichnung || "Sonstige Leistung"}</span>
+                    <span style={{ color: "#e8e0d0", fontSize: "0.83rem", flexShrink: 0 }}>{fmt(parseFloat(x.preis))}</span>
+                  </div>
+                ))}
+
+                <div style={{ display: "flex", justifyContent: "space-between", marginTop: 10, paddingTop: 10, borderTop: "1px solid #2e4030" }}>
+                  <span style={{ color: "#aaa", fontSize: "0.83rem" }}>Anfahrt ({km} km)</span>
+                  <span style={{ color: "#e8e0d0", fontSize: "0.83rem" }}>{fmt(anfahrt)}</span>
+                </div>
+
+                <div style={{ display: "flex", justifyContent: "space-between", marginTop: 10, paddingTop: 10, borderTop: "1px solid #3d5c41" }}>
+                  <span style={{ color: "#ccc", fontSize: "0.9rem" }}>Gesamt Netto</span>
+                  <span style={{ color: "#e8e0d0", fontSize: "0.9rem" }}>{fmt(nettoGesamt)}</span>
+                </div>
+
+                {/* Rabatt */}
+                <div style={{ marginTop: 12, paddingTop: 12, borderTop: "1px solid #2e4030" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 8 }}>
+                    <span style={{ color: "#aaa", fontSize: "0.83rem" }}>Rabatt:</span>
+                    <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                      <input type="number" min={0} max={100} step={0.5} value={rabatt}
+                        onChange={e => setRabatt(Math.min(100, Math.max(0, parseFloat(e.target.value) || 0)))}
+                        style={{ width: 62, padding: "5px 6px", border: "1px solid #3d5c41", borderRadius: 4, background: "#243828", color: "#e8e0d0", fontSize: "0.9rem", textAlign: "center" }} />
+                      <span style={{ color: "#aaa", fontSize: "0.85rem" }}>%</span>
+                    </div>
+                    {rabattBetrag > 0 && <span style={{ color: "#e07070", fontSize: "0.83rem", marginLeft: "auto" }}>− {fmt(rabattBetrag)}</span>}
+                  </div>
+                  {rabattBetrag > 0 && (
+                    <div style={{ display: "flex", justifyContent: "space-between" }}>
+                      <span style={{ color: "#ccc", fontSize: "0.88rem" }}>Netto nach Rabatt</span>
+                      <span style={{ color: "#e8e0d0", fontSize: "0.88rem", fontWeight: 600 }}>{fmt(nettoNachRabatt)}</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* MwSt */}
+                <div style={{ marginTop: 12, paddingTop: 12, borderTop: "1px solid #2e4030" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", marginBottom: 8 }}>
+                    <Checkbox checked={mitMwst} onChange={setMitMwst} label="MwSt. ausweisen" />
+                    {mitMwst && (
+                      <select value={mwstSatz} onChange={e => setMwstSatz(Number(e.target.value))}
+                        style={{ padding: "4px 8px", border: "1px solid #3d5c41", borderRadius: 4, background: "#243828", color: "#e8e0d0", fontSize: "0.88rem", cursor: "pointer" }}>
+                        <option value={19}>19 %</option>
+                        <option value={7}>7 %</option>
+                      </select>
+                    )}
+                  </div>
+                  {mitMwst && (
+                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+                      <span style={{ color: "#aaa", fontSize: "0.83rem" }}>MwSt. {mwstSatz} %</span>
+                      <span style={{ color: "#e8e0d0", fontSize: "0.83rem" }}>{fmt(mwstBetrag)}</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Gesamtbetrag */}
+                <div style={{ display: "flex", justifyContent: "space-between", marginTop: 10, paddingTop: 14, borderTop: "1px solid #3d5c41" }}>
+                  <span style={{ color: "#f4f1ec", fontSize: "1.1rem", fontFamily: "'Bebas Neue',sans-serif", letterSpacing: "0.05em" }}>
+                    {mitMwst ? "Gesamtbetrag (Brutto)" : "Gesamtbetrag (Netto)"}
+                  </span>
+                  <span style={{ color: "#a8c5a0", fontSize: "1.3rem", fontFamily: "'Bebas Neue',sans-serif" }}>{fmt(bruttoGesamt)}</span>
+                </div>
+
+                {/* Share Buttons */}
+                <div style={{ marginTop: 14, display: "flex", flexDirection: "column", gap: 8 }}>
+                  {shareMsg && <div style={{ background: "#2e4030", color: "#a8c5a0", borderRadius: 4, padding: "8px 12px", fontSize: "0.8rem", textAlign: "center" }}>{shareMsg}</div>}
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <div onClick={() => { const { emailBody, subject } = buildTexts(); const m = `mailto:${kunde.email || ""}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(emailBody)}`; doShare(emailBody, subject, m); }}
+                      style={btn("#1c2b1e", "#3d5c41", "#a8c5a0")}>
+                      📧 Per E-Mail
+                    </div>
+                    <div onClick={() => { const { waText } = buildTexts(); const rawPhone = (kunde.telefon || "").replace(/\s|-|\(|\)/g, ""); const waPhone = rawPhone.startsWith("+") ? rawPhone.slice(1) : rawPhone.startsWith("0") ? "49" + rawPhone.slice(1) : rawPhone; const waUrl = `https://wa.me/${waPhone}?text=${encodeURIComponent(waText)}`; doShare(waText, "Angebot DF Gebäudeservice", waUrl); }}
+                      style={btn("#1a3a25", "#2d6a3f", "#6fcf8a")}>
+                      💬 WhatsApp
+                    </div>
+                  </div>
+                  <div onClick={() => setShowPrint(true)} style={btn("#243828", "#3d5c41", "#a8c5a0")}>
+                    📄 Druckvorschau / PDF
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {netto === 0 && (
+              <div style={{ textAlign: "center", padding: "28px", color: "#aaa", fontSize: "0.9rem" }}>
+                Fensteranzahl oder m² eingeben, um den Preis zu berechnen.
+              </div>
+            )}
+
+            <div style={{ textAlign: "center", color: "#bbb", fontSize: "0.65rem", marginTop: 8 }}>
+              Alle Preise netto · DF Gebäudeservice
+            </div>
+          </div>
+
+          {/* Print Modal */}
+          {showPrint && (
+            <div style={{ position: "fixed", top: 0, left: 0, width: "100%", height: "100%", background: "rgba(0,0,0,0.75)", zIndex: 1000, display: "flex", alignItems: "flex-start", justifyContent: "center", overflowY: "auto", padding: "16px 0" }}>
+              <style>{`@media print { .no-print { display: none !important; } body > div:first-child > div { display: none; } #print-root { display: block !important; } }`}</style>
+              <div style={{ width: "100%", maxWidth: 620, padding: "0 10px" }}>
+                <div className="no-print" style={{ display: "flex", gap: 8, marginBottom: 10, flexWrap: "wrap" }}>
+                  <button onClick={() => window.print()} style={{ flex: 1, padding: "12px", background: "#1c2b1e", border: "none", borderRadius: 4, color: "#a8c5a0", fontSize: "0.88rem", fontWeight: 600, cursor: "pointer" }}>
+                    🖨️ Drucken / Als PDF speichern
+                  </button>
+                  <button onClick={() => setShowPrint(false)} style={{ padding: "12px 18px", background: "#333", border: "none", borderRadius: 4, color: "#ccc", fontSize: "0.88rem", cursor: "pointer" }}>
+                    ✕ Schließen
+                  </button>
+                </div>
+
+                <div className="print-area" style={{ background: "#fff", borderRadius: 6, padding: "36px 40px", boxShadow: "0 4px 30px rgba(0,0,0,0.3)", fontFamily: "Georgia,serif", color: "#222", fontSize: "13px" }}>
+                  <h1 style={{ fontSize: "24px", color: "#1c2b1e", margin: "0 0 2px" }}>Angebot</h1>
+                  <div style={{ fontSize: "10px", color: "#888", textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: 26 }}>DF Gebäudeservice · Fensterreinigung & Bauendreinigung</div>
+
+                  {(kunde.name || kunde.strasse || kunde.ort) && (
+                    <>
+                      <div style={{ fontSize: "9px", textTransform: "uppercase", letterSpacing: "0.14em", color: "#888", marginBottom: 5 }}>Kunde</div>
+                      <div style={{ background: "#f7f5f0", borderLeft: "3px solid #1c2b1e", padding: "10px 14px", lineHeight: 1.7, marginBottom: 18 }}>
+                        {[kunde.name, kunde.strasse, [kunde.plz, kunde.ort].filter(Boolean).join(" "), kunde.telefon, kunde.email].filter(Boolean).map((l, i) => <div key={i}>{l}</div>)}
+                      </div>
+                    </>
+                  )}
+
+                  <div style={{ fontSize: "9px", textTransform: "uppercase", letterSpacing: "0.14em", color: "#888", marginBottom: 6 }}>Leistungen</div>
+                  <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                    <thead>
+                      <tr>
+                        <th style={{ fontSize: "9px", textTransform: "uppercase", color: "#888", borderBottom: "1px solid #ccc", padding: "6px 0", textAlign: "left", letterSpacing: "0.1em" }}>Bezeichnung</th>
+                        <th style={{ fontSize: "9px", textTransform: "uppercase", color: "#888", borderBottom: "1px solid #ccc", padding: "6px 0", textAlign: "right", letterSpacing: "0.1em" }}>Betrag</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {aktivePositionen.map(x => {
+                        const tags = [x.s.rahmen && "Rahmen", x.s.falz && "Falz", x.s.schwer && "schwer zugängl."].filter(Boolean);
+                        return (
+                          <tr key={x.id}>
+                            <td style={{ padding: "7px 0", borderBottom: "1px solid #eee" }}>{x.s.anzahl}× {x.label}{tags.length > 0 && <span style={{ color: "#888", fontSize: "11px" }}> ({tags.join(", ")})</span>}</td>
+                            <td style={{ padding: "7px 0", borderBottom: "1px solid #eee", textAlign: "right" }}>{fmt(x.summe)}</td>
+                          </tr>
+                        );
+                      })}
+                      {bauSumme > 0 && <tr><td style={{ padding: "7px 0", borderBottom: "1px solid #eee" }}>Bauendreinigung – {baum2} m²</td><td style={{ padding: "7px 0", borderBottom: "1px solid #eee", textAlign: "right" }}>{fmt(bauSumme)}</td></tr>}
+                      {sonstige.filter(x => parseFloat(x.preis) > 0).map(x => (
+                        <tr key={x.id}><td style={{ padding: "7px 0", borderBottom: "1px solid #eee" }}>{x.bezeichnung || "Sonstige Leistung"}</td><td style={{ padding: "7px 0", borderBottom: "1px solid #eee", textAlign: "right" }}>{fmt(parseFloat(x.preis))}</td></tr>
+                      ))}
+                      <tr><td style={{ padding: "7px 0", borderBottom: "1px solid #eee" }}>Anfahrtspauschale ({km} km)</td><td style={{ padding: "7px 0", borderBottom: "1px solid #eee", textAlign: "right" }}>{fmt(anfahrt)}</td></tr>
+                      {rabattBetrag > 0 && <>
+                        <tr style={{ color: "#c0392b" }}><td style={{ padding: "7px 0", borderBottom: "1px solid #eee" }}>Rabatt {rabatt} %</td><td style={{ padding: "7px 0", borderBottom: "1px solid #eee", textAlign: "right" }}>− {fmt(rabattBetrag)}</td></tr>
+                        <tr style={{ color: "#555", fontSize: "11px" }}><td style={{ padding: "6px 0", borderBottom: "1px solid #eee" }}>Netto nach Rabatt</td><td style={{ padding: "6px 0", borderBottom: "1px solid #eee", textAlign: "right" }}>{fmt(nettoNachRabatt)}</td></tr>
+                      </>}
+                      {mitMwst && <tr><td style={{ padding: "7px 0", borderBottom: "1px solid #eee" }}>MwSt. {mwstSatz} %</td><td style={{ padding: "7px 0", borderBottom: "1px solid #eee", textAlign: "right" }}>{fmt(mwstBetrag)}</td></tr>}
+                    </tbody>
+                  </table>
+                  <table style={{ width: "100%", borderCollapse: "collapse", marginTop: 4 }}>
+                    <tbody>
+                      <tr>
+                        <td style={{ fontSize: "16px", fontWeight: 700, color: "#1c2b1e", paddingTop: 12, borderTop: "2px solid #1c2b1e" }}>{mitMwst ? "Gesamtbetrag (Brutto)" : "Gesamtbetrag (Netto)"}</td>
+                        <td style={{ fontSize: "16px", fontWeight: 700, color: "#1c2b1e", paddingTop: 12, borderTop: "2px solid #1c2b1e", textAlign: "right" }}>{fmt(bruttoGesamt)}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                  {kunde.notiz && <div style={{ fontSize: "11px", color: "#666", marginTop: 18, padding: "8px 12px", border: "1px solid #ddd" }}><strong>Notiz:</strong> {kunde.notiz}</div>}
+                  <div style={{ marginTop: 32, fontSize: "10px", color: "#aaa", borderTop: "1px solid #eee", paddingTop: 10 }}>
+                    Alle Preise in Euro · {new Date().toLocaleDateString("de-DE")} · DF Gebäudeservice
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+
+    // Service Worker registrieren
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("./sw.js").catch(() => {});
+      });
+    }
+  </script>
+</body>
+</html>
