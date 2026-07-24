@@ -508,59 +508,59 @@
                   Zusammenfassung {kunde.name && <span style={{ color: "#a8c5a0", marginLeft: 6 }}>· {kunde.name}{kunde.ort ? `, ${kunde.ort}` : ""}</span>}
                 </div>
 
-                {aktivePositionen.length > 0 && (
-                  <div style={{ fontSize: "0.75rem", color: "#7aaa7a", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 6, marginTop: 8, fontWeight: 600 }}>Glas- und Fensterreinigung</div>
-                )}
-                {aktivePositionen.map(x => {
-                  const tags = [x.s.rahmen && "Rahmen", x.s.falz && "Falz", x.s.schwer && "schwer zugängl."].filter(Boolean);
-                  return (
-                    <div key={x.id} style={{ display: "flex", justifyContent: "space-between", marginBottom: 7, gap: 12 }}>
-                      <span style={{ color: "#ccc", fontSize: "0.83rem" }}>
-                        {x.s.anzahl}× {x.label}
-                        {tags.length > 0 && <span style={{ color: "#7aaa7a", fontSize: "0.72rem", marginLeft: 6 }}>({tags.join(", ")})</span>}
+                {/* Hilfsstil für Positionszeilen */}
+                {(() => {
+                  const row = (label, menge, preis, tags) => (
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr auto auto", gap: "0 14px", marginBottom: 5, paddingLeft: 10 }}>
+                      <span style={{ color: "#ccc", fontSize: "0.82rem" }}>
+                        {label}
+                        {tags && tags.length > 0 && <span style={{ color: "#7aaa7a", fontSize: "0.7rem", marginLeft: 5 }}>({tags.join(", ")})</span>}
                       </span>
-                      <span style={{ color: "#e8e0d0", fontSize: "0.83rem", flexShrink: 0 }}>{fmt(x.summe)}</span>
+                      <span style={{ color: "#aaa", fontSize: "0.82rem", textAlign: "right", whiteSpace: "nowrap" }}>{menge}</span>
+                      <span style={{ color: "#e8e0d0", fontSize: "0.82rem", textAlign: "right", whiteSpace: "nowrap" }}>{fmt(preis)}</span>
                     </div>
                   );
-                })}
+                  const gruppenHeader = (titel, summe) => (
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginTop: 10, marginBottom: 5 }}>
+                      <span style={{ fontSize: "0.75rem", color: "#7aaa7a", textTransform: "uppercase", letterSpacing: "0.1em", fontWeight: 600 }}>{titel}</span>
+                      <span style={{ fontSize: "0.85rem", color: "#a8c5a0", fontWeight: 700, whiteSpace: "nowrap" }}>{fmt(summe)}</span>
+                    </div>
+                  );
+                  const fensterSumme = aktivePositionen.reduce((a, x) => a + x.summe, 0);
+                  const m2Gesamt = bauSumme + freiM2Summe;
+                  const sonstigeGesamt = sonstigeSumme + anfahrt;
+                  return (
+                    <>
+                      {/* Glas- und Fensterreinigung */}
+                      {aktivePositionen.length > 0 && <>
+                        {gruppenHeader("Glas- und Fensterreinigung", fensterSumme)}
+                        {aktivePositionen.map(x => {
+                          const tags = [x.s.rahmen && "Rahmen", x.s.falz && "Falz", x.s.schwer && "schwer zugängl."].filter(Boolean);
+                          return <div key={x.id}>{row(x.label, `${x.s.anzahl} Stück`, x.summe, tags)}</div>;
+                        })}
+                      </>}
 
-                {(bauSumme > 0 || freiM2Summe > 0) && (
-                  <div style={{ fontSize: "0.75rem", color: "#7aaa7a", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 6, marginTop: 8, fontWeight: 600 }}>m²-Leistungen</div>
-                )}
-                {bauSumme > 0 && (
-                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 7, gap: 12 }}>
-                    <span style={{ color: "#ccc", fontSize: "0.83rem" }}>Bauendreinigung {baum2} m² <span style={{ color: "#7aaa7a", fontSize: "0.72rem" }}>({fmt(BAU_PREIS)}/m²)</span></span>
-                    <span style={{ color: "#e8e0d0", fontSize: "0.83rem", flexShrink: 0 }}>{fmt(bauSumme)}</span>
-                  </div>
-                )}
-                {freiM2.filter(x => (parseFloat(x.preis) || 0) * (parseFloat(x.m2) || 0) > 0).map(x => (
-                  <div key={x.id} style={{ display: "flex", justifyContent: "space-between", marginBottom: 7, gap: 12 }}>
-                    <span style={{ color: "#ccc", fontSize: "0.83rem" }}>
-                      {x.bezeichnung || "m²-Leistung"} {x.m2} m²
-                      <span style={{ color: "#7aaa7a", fontSize: "0.72rem", marginLeft: 6 }}>({fmt(parseFloat(x.preis))}/m²)</span>
-                    </span>
-                    <span style={{ color: "#e8e0d0", fontSize: "0.83rem", flexShrink: 0 }}>{fmt((parseFloat(x.preis) || 0) * (parseFloat(x.m2) || 0))}</span>
-                  </div>
-                ))}
+                      {/* m²-Leistungen */}
+                      {m2Gesamt > 0 && <>
+                        {gruppenHeader("m²-Leistungen", m2Gesamt)}
+                        {bauSumme > 0 && row("Bauendreinigung", `${baum2} m²`, bauSumme)}
+                        {freiM2.filter(x => (parseFloat(x.preis)||0)*(parseFloat(x.m2)||0) > 0).map(x =>
+                          <div key={x.id}>{row(x.bezeichnung || "m²-Leistung", `${x.m2} m²`, (parseFloat(x.preis)||0)*(parseFloat(x.m2)||0))}</div>
+                        )}
+                      </>}
 
-                {sonstige.filter(x => getSonstigePreis(x) > 0).length > 0 && (
-                  <div style={{ fontSize: "0.75rem", color: "#7aaa7a", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 6, marginTop: 8, fontWeight: 600 }}>Sonstige Leistungen</div>
-                )}
-                {sonstige.filter(x => getSonstigePreis(x) > 0).map(x => (
-                  <div key={x.id} style={{ display: "flex", justifyContent: "space-between", marginBottom: 7, gap: 12 }}>
-                    <span style={{ color: "#ccc", fontSize: "0.83rem" }}>
-                      {x.bezeichnung || "Sonstige Leistung"}
-                      {x.typ === "stunden" && <span style={{ color: "#7aaa7a", fontSize: "0.72rem", marginLeft: 6 }}>({x.stunden} Std. × {fmt(parseFloat(x.stundenlohn))})</span>}
-                    </span>
-                    <span style={{ color: "#e8e0d0", fontSize: "0.83rem", flexShrink: 0 }}>{fmt(getSonstigePreis(x))}</span>
-                  </div>
-                ))}
-
-                <div style={{ fontSize: "0.75rem", color: "#7aaa7a", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 6, marginTop: 8, fontWeight: 600 }}>Sonstiges</div>
-                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 7 }}>
-                  <span style={{ color: "#aaa", fontSize: "0.83rem" }}>Anfahrt ({km} km)</span>
-                  <span style={{ color: "#e8e0d0", fontSize: "0.83rem" }}>{fmt(anfahrt)}</span>
-                </div>
+                      {/* Sonstiges: eigene Leistungen + Anfahrt */}
+                      {sonstigeGesamt > 0 && <>
+                        {gruppenHeader("Sonstiges", sonstigeGesamt)}
+                        {sonstige.filter(x => getSonstigePreis(x) > 0).map(x => {
+                          const menge = x.typ === "stunden" ? `${x.stunden} Std.` : "1 Psch.";
+                          return <div key={x.id}>{row(x.bezeichnung || "Sonstige Leistung", menge, getSonstigePreis(x))}</div>;
+                        })}
+                        {row(`Rüst- und Anfahrtspauschale (${km} km)`, "1 Stück", anfahrt)}
+                      </>}
+                    </>
+                  );
+                })()}
 
                 <div style={{ display: "flex", justifyContent: "space-between", marginTop: 10, paddingTop: 10, borderTop: "1px solid #3d5c41" }}>
                   <span style={{ color: "#ccc", fontSize: "0.9rem" }}>Gesamt Netto</span>
