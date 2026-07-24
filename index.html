@@ -83,7 +83,7 @@
     }
 
 
-    function InvoiceContent({ kunde, aktivePositionen, bauSumme, baum2, BAU_PREIS, freiM2, freiM2Summe, sonstige, getSonstigePreis, km, anfahrt, rabattBetrag, rabatt, nettoNachRabatt, mitMwst, mwstSatz, mwstBetrag, bruttoGesamt, fmt, screen }) {
+    function InvoiceContent({ kunde, aktivePositionen, bauSumme, baum2, BAU_PREIS, freiM2, freiM2Summe, sonstige, getSonstigePreis, km, anfahrt, anfahrtAnzahl, rabattBetrag, rabatt, nettoNachRabatt, mitMwst, mwstSatz, mwstBetrag, bruttoGesamt, fmt, screen }) {
       const wrap = screen
         ? { background: "#fff", borderRadius: 6, padding: "36px 40px", boxShadow: "0 4px 30px rgba(0,0,0,0.3)", fontFamily: "'Inter', sans-serif", color: "#222", fontSize: "13px" }
         : { fontFamily: "'Inter', sans-serif", color: "#222", fontSize: "13px" };
@@ -161,7 +161,7 @@
                     {sonstige.filter(x => getSonstigePreis(x) > 0).map(x =>
                       itemRow(x.id, x.bezeichnung || "Sonstige Leistung", x.typ === "stunden" ? `${x.stunden} Std.` : "1 Psch.", getSonstigePreis(x))
                     )}
-                    {itemRow("anfahrt", `Rüst- und Anfahrtspauschale (${km} km)`, "1 Stück", anfahrt)}
+                    {itemRow("anfahrt", `Rüst- und Anfahrtspauschale (${km} km)`, `${anfahrtAnzahl} Stück`, anfahrt)}
                   </>}
 
                   {/* Rabatt */}
@@ -213,6 +213,7 @@
         Object.fromEntries(PREISE.map(p => [p.id, mkDefault()]))
       );
       const [km, setKm] = useState(0);
+      const [anfahrtAnzahl, setAnfahrtAnzahl] = useState(1);
       const [mwstSatz, setMwstSatz] = useState(19);
       const [mitMwst, setMitMwst] = useState(false);
       const [baum2, setBaum2] = useState(0);
@@ -235,7 +236,8 @@
       const setK = (f, v) => setKunde(p => ({ ...p, [f]: v }));
       const setF = (id, f, v) => setFenster(p => ({ ...p, [id]: { ...p[id], [f]: v } }));
 
-      const anfahrt = km <= 20 ? 15 : 25;
+      const anfahrtEinzel = km <= 20 ? 15 : 25;
+      const anfahrt = anfahrtEinzel * anfahrtAnzahl;
       const aktivePositionen = PREISE
         .map(p => { const s = fenster[p.id]; const ep = calcEP(p, s); return { ...p, s, ep, summe: s.anzahl * ep }; })
         .filter(x => x.s.anzahl > 0);
@@ -300,7 +302,7 @@
           bauLine || null,
           freiM2Lines || null,
           sonstigeLines || null,
-          `Rüst- und Anfahrtspauschale (${km} km): ${fmt(anfahrt)}`,
+          `Rüst- und Anfahrtspauschale ${anfahrtAnzahl}× (${km} km): ${fmt(anfahrt)}`,
           `──────────────────────────────`,
           `Netto: ${fmt(nettoGesamt)}`,
           rabattLine || null,
@@ -370,9 +372,20 @@
               <input type="number" min={0} value={km} onChange={e => setKm(Math.max(0, parseInt(e.target.value) || 0))}
                 style={{ width: 64, padding: "6px 8px", border: "1px solid #ccc", borderRadius: 4, fontSize: "0.95rem", textAlign: "center" }} />
               <span style={{ fontSize: "0.85rem", color: "#777" }}>
-                km → Anfahrt: <strong style={{ color: "#1c2b1e" }}>{fmt(anfahrt)}</strong>
-                <span style={{ color: "#bbb", fontSize: "0.72rem", marginLeft: 6 }}>(≤20 km = 15 € / &gt;20 km = 25 €)</span>
+                km → {fmt(anfahrtEinzel)} / Fahrt
               </span>
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <span style={{ fontSize: "0.82rem", color: "#555" }}>Anzahl Fahrten:</span>
+                <button onClick={() => setAnfahrtAnzahl(v => Math.max(1, v - 1))}
+                  style={{ width: 28, height: 28, border: "1px solid #ccc", borderRadius: 4, background: "#fff", cursor: "pointer", fontSize: "1.1rem", color: "#555" }}>−</button>
+                <input type="number" min={1} value={anfahrtAnzahl}
+                  onChange={e => setAnfahrtAnzahl(Math.max(1, parseInt(e.target.value) || 1))}
+                  style={{ width: 40, textAlign: "center", border: "1px solid #ccc", borderRadius: 4, padding: "4px 2px", fontSize: "0.9rem" }} />
+                <button onClick={() => setAnfahrtAnzahl(v => v + 1)}
+                  style={{ width: 28, height: 28, border: "1px solid #ccc", borderRadius: 4, background: "#fff", cursor: "pointer", fontSize: "1.1rem", color: "#555" }}>+</button>
+              </div>
+              <strong style={{ color: "#1c2b1e", fontSize: "0.9rem" }}>{fmt(anfahrt)}</strong>
+              <span style={{ color: "#bbb", fontSize: "0.72rem" }}>(≤20 km = 15 € / &gt;20 km = 25 €)</span>
             </div>
 
             {/* Bauendreinigung */}
@@ -594,7 +607,7 @@
                           const menge = x.typ === "stunden" ? `${x.stunden} Std.` : "1 Psch.";
                           return <div key={x.id}>{row(x.bezeichnung || "Sonstige Leistung", menge, getSonstigePreis(x))}</div>;
                         })}
-                        {row(`Rüst- und Anfahrtspauschale (${km} km)`, "1 Stück", anfahrt)}
+                        {row(`Rüst- und Anfahrtspauschale (${km} km)`, `${anfahrtAnzahl} Stück`, anfahrt)}
                       </>}
                     </>
                   );
@@ -696,14 +709,14 @@
                     ✕ Schließen
                   </button>
                 </div>
-                <InvoiceContent {...{kunde, aktivePositionen, bauSumme, baum2, BAU_PREIS, freiM2, freiM2Summe, sonstige, getSonstigePreis, km, anfahrt, rabattBetrag, rabatt, nettoNachRabatt, mitMwst, mwstSatz, mwstBetrag, bruttoGesamt, fmt}} screen={true} />
+                <InvoiceContent {...{kunde, aktivePositionen, bauSumme, baum2, BAU_PREIS, freiM2, freiM2Summe, sonstige, getSonstigePreis, km, anfahrt, anfahrtAnzahl, rabattBetrag, rabatt, nettoNachRabatt, mitMwst, mwstSatz, mwstBetrag, bruttoGesamt, fmt}} screen={true} />
               </div>
             </div>
           )}
 
           {/* Portal: immer im DOM, wird beim Drucken sichtbar */}
           {showPrint && ReactDOM.createPortal(
-            <InvoiceContent {...{kunde, aktivePositionen, bauSumme, baum2, BAU_PREIS, freiM2, freiM2Summe, sonstige, getSonstigePreis, km, anfahrt, rabattBetrag, rabatt, nettoNachRabatt, mitMwst, mwstSatz, mwstBetrag, bruttoGesamt, fmt}} screen={false} />,
+            <InvoiceContent {...{kunde, aktivePositionen, bauSumme, baum2, BAU_PREIS, freiM2, freiM2Summe, sonstige, getSonstigePreis, km, anfahrt, anfahrtAnzahl, rabattBetrag, rabatt, nettoNachRabatt, mitMwst, mwstSatz, mwstBetrag, bruttoGesamt, fmt}} screen={false} />,
             document.getElementById("print-root")
           )}
         </div>
