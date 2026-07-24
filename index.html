@@ -82,7 +82,89 @@
       );
     }
 
-    function App() {
+
+    function InvoiceContent({ kunde, aktivePositionen, bauSumme, baum2, BAU_PREIS, freiM2, freiM2Summe, sonstige, getSonstigePreis, km, anfahrt, rabattBetrag, rabatt, nettoNachRabatt, mitMwst, mwstSatz, mwstBetrag, bruttoGesamt, fmt, screen }) {
+      const wrap = screen
+        ? { background: "#fff", borderRadius: 6, padding: "36px 40px", boxShadow: "0 4px 30px rgba(0,0,0,0.3)", fontFamily: "Georgia,serif", color: "#222", fontSize: "13px" }
+        : { fontFamily: "Georgia,serif", color: "#222", fontSize: "13px" };
+      return (
+        <div style={wrap}>
+          <h1 style={{ fontSize: "24px", color: "#1c2b1e", margin: "0 0 2px" }}>Angebot</h1>
+          <div style={{ fontSize: "10px", color: "#888", textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: 26 }}>DF Gebäudeservice · Fenster-, Sonder- und Bauendreinigung</div>
+          {(kunde.name || kunde.strasse || kunde.ort) && (
+            <>
+              <div style={{ fontSize: "9px", textTransform: "uppercase", letterSpacing: "0.14em", color: "#888", marginBottom: 5 }}>Kunde</div>
+              <div style={{ background: "#f7f5f0", borderLeft: "3px solid #1c2b1e", padding: "10px 14px", lineHeight: 1.7, marginBottom: 18 }}>
+                {[kunde.name, kunde.strasse, [kunde.plz, kunde.ort].filter(Boolean).join(" "), kunde.telefon, kunde.email].filter(Boolean).map((l, i) => <div key={i}>{l}</div>)}
+              </div>
+            </>
+          )}
+          <div style={{ fontSize: "9px", textTransform: "uppercase", letterSpacing: "0.14em", color: "#888", marginBottom: 6 }}>Leistungen</div>
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <thead>
+              <tr>
+                <th style={{ fontSize: "9px", textTransform: "uppercase", color: "#888", borderBottom: "1px solid #ccc", padding: "6px 0", textAlign: "left", letterSpacing: "0.1em" }}>Bezeichnung</th>
+                <th style={{ fontSize: "9px", textTransform: "uppercase", color: "#888", borderBottom: "1px solid #ccc", padding: "6px 0", textAlign: "right", letterSpacing: "0.1em" }}>Betrag</th>
+              </tr>
+            </thead>
+            <tbody>
+              {aktivePositionen.length > 0 && <tr><td colSpan={2} style={{ padding: "8px 0 4px", fontSize: "9px", textTransform: "uppercase", letterSpacing: "0.1em", color: "#888", fontWeight: 600 }}>Fenster</td></tr>}
+              {aktivePositionen.map(x => {
+                const tags = [x.s.rahmen && "Rahmen", x.s.falz && "Falz", x.s.schwer && "schwer zugängl."].filter(Boolean);
+                return (
+                  <tr key={x.id}>
+                    <td style={{ padding: "7px 0", borderBottom: "1px solid #eee" }}>{x.s.anzahl}× {x.label}{tags.length > 0 && <span style={{ color: "#888", fontSize: "11px" }}> ({tags.join(", ")})</span>}</td>
+                    <td style={{ padding: "7px 0", borderBottom: "1px solid #eee", textAlign: "right" }}>{fmt(x.summe)}</td>
+                  </tr>
+                );
+              })}
+              {(bauSumme > 0 || freiM2Summe > 0) && <tr><td colSpan={2} style={{ padding: "10px 0 4px", fontSize: "9px", textTransform: "uppercase", letterSpacing: "0.1em", color: "#888", fontWeight: 600 }}>m²-Leistungen</td></tr>}
+              {bauSumme > 0 && <tr><td style={{ padding: "7px 0", borderBottom: "1px solid #eee" }}>Bauendreinigung – {baum2} m²</td><td style={{ padding: "7px 0", borderBottom: "1px solid #eee", textAlign: "right" }}>{fmt(bauSumme)}</td></tr>}
+              {freiM2.filter(x => (parseFloat(x.preis)||0)*(parseFloat(x.m2)||0) > 0).map(x => (
+                <tr key={x.id}>
+                  <td style={{ padding: "7px 0", borderBottom: "1px solid #eee" }}>{x.bezeichnung || "m²-Leistung"} – {x.m2} m² <span style={{ color: "#888", fontSize: "11px" }}>({fmt(parseFloat(x.preis))}/m²)</span></td>
+                  <td style={{ padding: "7px 0", borderBottom: "1px solid #eee", textAlign: "right" }}>{fmt((parseFloat(x.preis)||0)*(parseFloat(x.m2)||0))}</td>
+                </tr>
+              ))}
+              {sonstige.filter(x => getSonstigePreis(x) > 0).length > 0 && <tr><td colSpan={2} style={{ padding: "10px 0 4px", fontSize: "9px", textTransform: "uppercase", letterSpacing: "0.1em", color: "#888", fontWeight: 600 }}>Sonstige Leistungen</td></tr>}
+              {sonstige.filter(x => getSonstigePreis(x) > 0).map(x => (
+                <tr key={x.id}>
+                  <td style={{ padding: "7px 0", borderBottom: "1px solid #eee" }}>
+                    {x.bezeichnung || "Sonstige Leistung"}
+                    {x.typ === "stunden" && <span style={{ color: "#888", fontSize: "11px" }}> ({x.stunden} Std. × {fmt(parseFloat(x.stundenlohn))})</span>}
+                  </td>
+                  <td style={{ padding: "7px 0", borderBottom: "1px solid #eee", textAlign: "right" }}>{fmt(getSonstigePreis(x))}</td>
+                </tr>
+              ))}
+              <tr><td style={{ padding: "7px 0", borderBottom: "1px solid #eee" }}>Rüst- und Anfahrtspauschale ({km} km)</td><td style={{ padding: "7px 0", borderBottom: "1px solid #eee", textAlign: "right" }}>{fmt(anfahrt)}</td></tr>
+              {rabattBetrag > 0 && <>
+                <tr style={{ color: "#c0392b" }}><td style={{ padding: "7px 0", borderBottom: "1px solid #eee" }}>Rabatt {rabatt} %</td><td style={{ padding: "7px 0", borderBottom: "1px solid #eee", textAlign: "right" }}>− {fmt(rabattBetrag)}</td></tr>
+                <tr style={{ color: "#555", fontSize: "11px" }}><td style={{ padding: "6px 0", borderBottom: "1px solid #eee" }}>Netto nach Rabatt</td><td style={{ padding: "6px 0", borderBottom: "1px solid #eee", textAlign: "right" }}>{fmt(nettoNachRabatt)}</td></tr>
+              </>}
+              {mitMwst && <>
+                <tr><td colSpan={2} style={{ padding: "4px 0" }}></td></tr>
+                <tr><td style={{ padding: "8px 0 4px", fontWeight: 600 }}>Gesamt Netto</td><td style={{ padding: "8px 0 4px", textAlign: "right", fontWeight: 600 }}>{fmt(nettoNachRabatt)}</td></tr>
+                <tr><td style={{ padding: "4px 0", borderBottom: "1px solid #eee" }}>MwSt. {mwstSatz} %</td><td style={{ padding: "4px 0", borderBottom: "1px solid #eee", textAlign: "right" }}>{fmt(mwstBetrag)}</td></tr>
+              </>}
+            </tbody>
+          </table>
+          <table style={{ width: "100%", borderCollapse: "collapse", marginTop: 4 }}>
+            <tbody>
+              <tr>
+                <td style={{ fontSize: "16px", fontWeight: 700, color: "#1c2b1e", paddingTop: 12, borderTop: "2px solid #1c2b1e" }}>{mitMwst ? "Gesamtbetrag (Brutto)" : "Gesamtbetrag (Netto)"}</td>
+                <td style={{ fontSize: "16px", fontWeight: 700, color: "#1c2b1e", paddingTop: 12, borderTop: "2px solid #1c2b1e", textAlign: "right" }}>{fmt(bruttoGesamt)}</td>
+              </tr>
+            </tbody>
+          </table>
+          {kunde.notiz && <div style={{ fontSize: "11px", color: "#666", marginTop: 18, padding: "8px 12px", border: "1px solid #ddd" }}><strong>Notiz:</strong> {kunde.notiz}</div>}
+          <div style={{ marginTop: 32, fontSize: "10px", color: "#aaa", borderTop: "1px solid #eee", paddingTop: 10 }}>
+            Alle Preise in Euro · {new Date().toLocaleDateString("de-DE")} · DF Gebäudeservice
+          </div>
+        </div>
+      );
+    }
+
+        function App() {
       const [fenster, setFenster] = useState(() =>
         Object.fromEntries(PREISE.map(p => [p.id, mkDefault()]))
       );
@@ -557,12 +639,11 @@
             </div>
           </div>
 
-          {/* Print Modal */}
+          {/* Print Modal (Bildschirm-Vorschau) */}
           {showPrint && (
-          <div style={{ position: "fixed", top: 0, left: 0, width: "100%", height: "100%", background: "rgba(0,0,0,0.75)", zIndex: 1000, display: "flex", alignItems: "flex-start", justifyContent: "center", overflowY: "auto", padding: "16px 0" }}>
-              <style>{``}</style>
+            <div style={{ position: "fixed", top: 0, left: 0, width: "100%", height: "100%", background: "rgba(0,0,0,0.75)", zIndex: 1000, display: "flex", alignItems: "flex-start", justifyContent: "center", overflowY: "auto", padding: "16px 0" }}>
               <div style={{ width: "100%", maxWidth: 620, padding: "0 10px" }}>
-                <div className="no-print" style={{ display: "flex", gap: 8, marginBottom: 10, flexWrap: "wrap" }}>
+                <div style={{ display: "flex", gap: 8, marginBottom: 10, flexWrap: "wrap" }}>
                   <button onClick={() => window.print()} style={{ flex: 1, padding: "12px", background: "#1c2b1e", border: "none", borderRadius: 4, color: "#a8c5a0", fontSize: "0.88rem", fontWeight: 600, cursor: "pointer" }}>
                     🖨️ Drucken / Als PDF speichern
                   </button>
@@ -570,195 +651,21 @@
                     ✕ Schließen
                   </button>
                 </div>
-
-                <div style={{ background: "#fff", borderRadius: 6, padding: "36px 40px", boxShadow: "0 4px 30px rgba(0,0,0,0.3)", fontFamily: "Georgia,serif", color: "#222", fontSize: "13px" }}>
-                  <h1 style={{ fontSize: "24px", color: "#1c2b1e", margin: "0 0 2px" }}>Angebot</h1>
-                  <div style={{ fontSize: "10px", color: "#888", textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: 26 }}>DF Gebäudeservice · Fenster-, Sonder- und Bauendreinigung</div>
-
-                  {(kunde.name || kunde.strasse || kunde.ort) && (
-                    <>
-                      <div style={{ fontSize: "9px", textTransform: "uppercase", letterSpacing: "0.14em", color: "#888", marginBottom: 5 }}>Kunde</div>
-                      <div style={{ background: "#f7f5f0", borderLeft: "3px solid #1c2b1e", padding: "10px 14px", lineHeight: 1.7, marginBottom: 18 }}>
-                        {[kunde.name, kunde.strasse, [kunde.plz, kunde.ort].filter(Boolean).join(" "), kunde.telefon, kunde.email].filter(Boolean).map((l, i) => <div key={i}>{l}</div>)}
-                      </div>
-                    </>
-                  )}
-
-                  <div style={{ fontSize: "9px", textTransform: "uppercase", letterSpacing: "0.14em", color: "#888", marginBottom: 6 }}>Leistungen</div>
-                  <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                    <thead>
-                      <tr>
-                        <th style={{ fontSize: "9px", textTransform: "uppercase", color: "#888", borderBottom: "1px solid #ccc", padding: "6px 0", textAlign: "left", letterSpacing: "0.1em" }}>Bezeichnung</th>
-                        <th style={{ fontSize: "9px", textTransform: "uppercase", color: "#888", borderBottom: "1px solid #ccc", padding: "6px 0", textAlign: "right", letterSpacing: "0.1em" }}>Betrag</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {aktivePositionen.length > 0 && (
-                        <tr>
-                          <td colSpan={2} style={{ padding: "8px 0 4px", fontSize: "9px", textTransform: "uppercase", letterSpacing: "0.1em", color: "#888", fontWeight: 600 }}>Fenster</td>
-                        </tr>
-                      )}
-                      {aktivePositionen.map(x => {
-                        const tags = [x.s.rahmen && "Rahmen", x.s.falz && "Falz", x.s.schwer && "schwer zugängl."].filter(Boolean);
-                        return (
-                          <tr key={x.id}>
-                            <td style={{ padding: "7px 0", borderBottom: "1px solid #eee" }}>{x.s.anzahl}× {x.label}{tags.length > 0 && <span style={{ color: "#888", fontSize: "11px" }}> ({tags.join(", ")})</span>}</td>
-                            <td style={{ padding: "7px 0", borderBottom: "1px solid #eee", textAlign: "right" }}>{fmt(x.summe)}</td>
-                          </tr>
-                        );
-                      })}
-                      {(bauSumme > 0 || freiM2Summe > 0) && (
-                        <tr>
-                          <td colSpan={2} style={{ padding: "10px 0 4px", fontSize: "9px", textTransform: "uppercase", letterSpacing: "0.1em", color: "#888", fontWeight: 600 }}>m²-Leistungen</td>
-                        </tr>
-                      )}
-                      {bauSumme > 0 && <tr><td style={{ padding: "7px 0", borderBottom: "1px solid #eee" }}>Bauendreinigung – {baum2} m²</td><td style={{ padding: "7px 0", borderBottom: "1px solid #eee", textAlign: "right" }}>{fmt(bauSumme)}</td></tr>}
-                      {freiM2.filter(x => (parseFloat(x.preis)||0)*(parseFloat(x.m2)||0) > 0).map(x => (
-                        <tr key={x.id}>
-                          <td style={{ padding: "7px 0", borderBottom: "1px solid #eee" }}>
-                            {x.bezeichnung || "m²-Leistung"} – {x.m2} m²
-                            <span style={{ color: "#888", fontSize: "11px" }}> ({fmt(parseFloat(x.preis))}/m²)</span>
-                          </td>
-                          <td style={{ padding: "7px 0", borderBottom: "1px solid #eee", textAlign: "right" }}>{fmt((parseFloat(x.preis)||0)*(parseFloat(x.m2)||0))}</td>
-                        </tr>
-                      ))}
-                      {sonstige.filter(x => getSonstigePreis(x) > 0).length > 0 && (
-                        <tr>
-                          <td colSpan={2} style={{ padding: "10px 0 4px", fontSize: "9px", textTransform: "uppercase", letterSpacing: "0.1em", color: "#888", fontWeight: 600 }}>Sonstige Leistungen</td>
-                        </tr>
-                      )}
-                      {sonstige.filter(x => getSonstigePreis(x) > 0).map(x => (
-                        <tr key={x.id}>
-                          <td style={{ padding: "7px 0", borderBottom: "1px solid #eee" }}>
-                            {x.bezeichnung || "Sonstige Leistung"}
-                            {x.typ === "stunden" && <span style={{ color: "#888", fontSize: "11px" }}> ({x.stunden} Std. × {fmt(parseFloat(x.stundenlohn))})</span>}
-                          </td>
-                          <td style={{ padding: "7px 0", borderBottom: "1px solid #eee", textAlign: "right" }}>{fmt(getSonstigePreis(x))}</td>
-                        </tr>
-                      ))}
-                      <tr><td style={{ padding: "7px 0", borderBottom: "1px solid #eee" }}>Rüst- und Anfahrtspauschale ({km} km)</td><td style={{ padding: "7px 0", borderBottom: "1px solid #eee", textAlign: "right" }}>{fmt(anfahrt)}</td></tr>
-                      {rabattBetrag > 0 && <>
-                        <tr style={{ color: "#c0392b" }}><td style={{ padding: "7px 0", borderBottom: "1px solid #eee" }}>Rabatt {rabatt} %</td><td style={{ padding: "7px 0", borderBottom: "1px solid #eee", textAlign: "right" }}>− {fmt(rabattBetrag)}</td></tr>
-                        <tr style={{ color: "#555", fontSize: "11px" }}><td style={{ padding: "6px 0", borderBottom: "1px solid #eee" }}>Netto nach Rabatt</td><td style={{ padding: "6px 0", borderBottom: "1px solid #eee", textAlign: "right" }}>{fmt(nettoNachRabatt)}</td></tr>
-                      </>}
-                      {mitMwst && (
-                        <>
-                          <tr>
-                            <td colSpan={2} style={{ padding: "4px 0" }}></td>
-                          </tr>
-                          <tr style={{ borderTop: "1px solid #ccc" }}>
-                            <td style={{ padding: "8px 0 4px", fontSize: "0.85rem", color: "#444", fontWeight: 600 }}>Gesamt Netto</td>
-                            <td style={{ padding: "8px 0 4px", textAlign: "right", fontSize: "0.85rem", color: "#444", fontWeight: 600 }}>{fmt(nettoNachRabatt)}</td>
-                          </tr>
-                          <tr>
-                            <td style={{ padding: "4px 0", borderBottom: "1px solid #eee" }}>MwSt. {mwstSatz} %</td>
-                            <td style={{ padding: "4px 0", borderBottom: "1px solid #eee", textAlign: "right" }}>{fmt(mwstBetrag)}</td>
-                          </tr>
-                        </>
-                      )}
-                    </tbody>
-                  </table>
-                  <table style={{ width: "100%", borderCollapse: "collapse", marginTop: 4 }}>
-                    <tbody>
-                      <tr>
-                        <td style={{ fontSize: "16px", fontWeight: 700, color: "#1c2b1e", paddingTop: 12, borderTop: "2px solid #1c2b1e" }}>{mitMwst ? "Gesamtbetrag (Brutto)" : "Gesamtbetrag (Netto)"}</td>
-                        <td style={{ fontSize: "16px", fontWeight: 700, color: "#1c2b1e", paddingTop: 12, borderTop: "2px solid #1c2b1e", textAlign: "right" }}>{fmt(bruttoGesamt)}</td>
-                      </tr>
-                    </tbody>
-                  </table>
-                  {kunde.notiz && <div style={{ fontSize: "11px", color: "#666", marginTop: 18, padding: "8px 12px", border: "1px solid #ddd" }}><strong>Notiz:</strong> {kunde.notiz}</div>}
-                  <div style={{ marginTop: 32, fontSize: "10px", color: "#aaa", borderTop: "1px solid #eee", paddingTop: 10 }}>
-                    Alle Preise in Euro · {new Date().toLocaleDateString("de-DE")} · DF Gebäudeservice
-                  </div>
-                </div>
+                <InvoiceContent {...{kunde, aktivePositionen, bauSumme, baum2, BAU_PREIS, freiM2, freiM2Summe, sonstige, getSonstigePreis, km, anfahrt, rabattBetrag, rabatt, nettoNachRabatt, mitMwst, mwstSatz, mwstBetrag, bruttoGesamt, fmt}} screen={true} />
               </div>
             </div>
           )}
+
+          {/* Portal: immer im DOM, wird beim Drucken sichtbar */}
+          {showPrint && ReactDOM.createPortal(
+            <InvoiceContent {...{kunde, aktivePositionen, bauSumme, baum2, BAU_PREIS, freiM2, freiM2Summe, sonstige, getSonstigePreis, km, anfahrt, rabattBetrag, rabatt, nettoNachRabatt, mitMwst, mwstSatz, mwstBetrag, bruttoGesamt, fmt}} screen={false} />,
+            document.getElementById("print-root")
+          )}
         </div>
-
-        {/* Portal: Druckinhalt direkt unter body – saubere 1 Seite */}
-        {showPrint && ReactDOM.createPortal(
-          <div>
-            <h1 style={{ fontSize: "24px", color: "#1c2b1e", margin: "0 0 2px" }}>Angebot</h1>
-            <div style={{ fontSize: "10px", color: "#888", textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: 26 }}>DF Gebäudeservice · Fenster-, Sonder- und Bauendreinigung</div>
-
-            {(kunde.name || kunde.strasse || kunde.ort) && (
-              <>
-                <div style={{ fontSize: "9px", textTransform: "uppercase", letterSpacing: "0.14em", color: "#888", marginBottom: 5 }}>Kunde</div>
-                <div style={{ background: "#f7f5f0", borderLeft: "3px solid #1c2b1e", padding: "10px 14px", lineHeight: 1.7, marginBottom: 18 }}>
-                  {[kunde.name, kunde.strasse, [kunde.plz, kunde.ort].filter(Boolean).join(" "), kunde.telefon, kunde.email].filter(Boolean).map((l, i) => <div key={i}>{l}</div>)}
-                </div>
-              </>
-            )}
-
-            <div style={{ fontSize: "9px", textTransform: "uppercase", letterSpacing: "0.14em", color: "#888", marginBottom: 6 }}>Leistungen</div>
-            <table style={{ width: "100%", borderCollapse: "collapse" }}>
-              <thead>
-                <tr>
-                  <th style={{ fontSize: "9px", textTransform: "uppercase", color: "#888", borderBottom: "1px solid #ccc", padding: "6px 0", textAlign: "left", letterSpacing: "0.1em" }}>Bezeichnung</th>
-                  <th style={{ fontSize: "9px", textTransform: "uppercase", color: "#888", borderBottom: "1px solid #ccc", padding: "6px 0", textAlign: "right", letterSpacing: "0.1em" }}>Betrag</th>
-                </tr>
-              </thead>
-              <tbody>
-                {aktivePositionen.length > 0 && <tr><td colSpan={2} style={{ padding: "8px 0 4px", fontSize: "9px", textTransform: "uppercase", letterSpacing: "0.1em", color: "#888", fontWeight: 600 }}>Fenster</td></tr>}
-                {aktivePositionen.map(x => {
-                  const tags = [x.s.rahmen && "Rahmen", x.s.falz && "Falz", x.s.schwer && "schwer zugängl."].filter(Boolean);
-                  return (
-                    <tr key={x.id}>
-                      <td style={{ padding: "7px 0", borderBottom: "1px solid #eee" }}>{x.s.anzahl}× {x.label}{tags.length > 0 && <span style={{ color: "#888", fontSize: "11px" }}> ({tags.join(", ")})</span>}</td>
-                      <td style={{ padding: "7px 0", borderBottom: "1px solid #eee", textAlign: "right" }}>{fmt(x.summe)}</td>
-                    </tr>
-                  );
-                })}
-                {(bauSumme > 0 || freiM2Summe > 0) && <tr><td colSpan={2} style={{ padding: "10px 0 4px", fontSize: "9px", textTransform: "uppercase", letterSpacing: "0.1em", color: "#888", fontWeight: 600 }}>m²-Leistungen</td></tr>}
-                {bauSumme > 0 && <tr><td style={{ padding: "7px 0", borderBottom: "1px solid #eee" }}>Bauendreinigung – {baum2} m²</td><td style={{ padding: "7px 0", borderBottom: "1px solid #eee", textAlign: "right" }}>{fmt(bauSumme)}</td></tr>}
-                {freiM2.filter(x => (parseFloat(x.preis)||0)*(parseFloat(x.m2)||0) > 0).map(x => (
-                  <tr key={x.id}>
-                    <td style={{ padding: "7px 0", borderBottom: "1px solid #eee" }}>{x.bezeichnung || "m²-Leistung"} – {x.m2} m² <span style={{ color: "#888", fontSize: "11px" }}>({fmt(parseFloat(x.preis))}/m²)</span></td>
-                    <td style={{ padding: "7px 0", borderBottom: "1px solid #eee", textAlign: "right" }}>{fmt((parseFloat(x.preis)||0)*(parseFloat(x.m2)||0))}</td>
-                  </tr>
-                ))}
-                {sonstige.filter(x => getSonstigePreis(x) > 0).length > 0 && <tr><td colSpan={2} style={{ padding: "10px 0 4px", fontSize: "9px", textTransform: "uppercase", letterSpacing: "0.1em", color: "#888", fontWeight: 600 }}>Sonstige Leistungen</td></tr>}
-                {sonstige.filter(x => getSonstigePreis(x) > 0).map(x => (
-                  <tr key={x.id}>
-                    <td style={{ padding: "7px 0", borderBottom: "1px solid #eee" }}>
-                      {x.bezeichnung || "Sonstige Leistung"}
-                      {x.typ === "stunden" && <span style={{ color: "#888", fontSize: "11px" }}> ({x.stunden} Std. × {fmt(parseFloat(x.stundenlohn))})</span>}
-                    </td>
-                    <td style={{ padding: "7px 0", borderBottom: "1px solid #eee", textAlign: "right" }}>{fmt(getSonstigePreis(x))}</td>
-                  </tr>
-                ))}
-                <tr><td style={{ padding: "7px 0", borderBottom: "1px solid #eee" }}>Rüst- und Anfahrtspauschale ({km} km)</td><td style={{ padding: "7px 0", borderBottom: "1px solid #eee", textAlign: "right" }}>{fmt(anfahrt)}</td></tr>
-                {rabattBetrag > 0 && <>
-                  <tr style={{ color: "#c0392b" }}><td style={{ padding: "7px 0", borderBottom: "1px solid #eee" }}>Rabatt {rabatt} %</td><td style={{ padding: "7px 0", borderBottom: "1px solid #eee", textAlign: "right" }}>− {fmt(rabattBetrag)}</td></tr>
-                  <tr style={{ color: "#555", fontSize: "11px" }}><td style={{ padding: "6px 0", borderBottom: "1px solid #eee" }}>Netto nach Rabatt</td><td style={{ padding: "6px 0", borderBottom: "1px solid #eee", textAlign: "right" }}>{fmt(nettoNachRabatt)}</td></tr>
-                </>}
-                {mitMwst && <>
-                  <tr><td colSpan={2} style={{ padding: "4px 0" }}></td></tr>
-                  <tr><td style={{ padding: "8px 0 4px", fontWeight: 600 }}>Gesamt Netto</td><td style={{ padding: "8px 0 4px", textAlign: "right", fontWeight: 600 }}>{fmt(nettoNachRabatt)}</td></tr>
-                  <tr><td style={{ padding: "4px 0", borderBottom: "1px solid #eee" }}>MwSt. {mwstSatz} %</td><td style={{ padding: "4px 0", borderBottom: "1px solid #eee", textAlign: "right" }}>{fmt(mwstBetrag)}</td></tr>
-                </>}
-              </tbody>
-            </table>
-            <table style={{ width: "100%", borderCollapse: "collapse", marginTop: 4 }}>
-              <tbody>
-                <tr>
-                  <td style={{ fontSize: "16px", fontWeight: 700, color: "#1c2b1e", paddingTop: 12, borderTop: "2px solid #1c2b1e" }}>{mitMwst ? "Gesamtbetrag (Brutto)" : "Gesamtbetrag (Netto)"}</td>
-                  <td style={{ fontSize: "16px", fontWeight: 700, color: "#1c2b1e", paddingTop: 12, borderTop: "2px solid #1c2b1e", textAlign: "right" }}>{fmt(bruttoGesamt)}</td>
-                </tr>
-              </tbody>
-            </table>
-            {kunde.notiz && <div style={{ fontSize: "11px", color: "#666", marginTop: 18, padding: "8px 12px", border: "1px solid #ddd" }}><strong>Notiz:</strong> {kunde.notiz}</div>}
-            <div style={{ marginTop: 32, fontSize: "10px", color: "#aaa", borderTop: "1px solid #eee", paddingTop: 10 }}>
-              Alle Preise in Euro · {new Date().toLocaleDateString("de-DE")} · DF Gebäudeservice
-            </div>
-          </div>,
-          document.getElementById("print-root")
-        )}
       );
     }
 
-    ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+        ReactDOM.createRoot(document.getElementById("root")).render(<App />);
 
     // Service Worker registrieren
     if ("serviceWorker" in navigator) {
