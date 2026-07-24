@@ -16,8 +16,17 @@
     body { background: #f4f1ec; font-family: Georgia, serif; }
     input, textarea, select, button { font-family: Georgia, serif; }
     @media print {
-      .no-print { display: none !important; }
-      .print-area { box-shadow: none !important; border-radius: 0 !important; max-width: 100% !important; }
+      body * { visibility: hidden !important; }
+      .print-area, .print-area * { visibility: visible !important; }
+      .print-area {
+        position: fixed !important;
+        top: 0 !important; left: 0 !important;
+        width: 100% !important;
+        box-shadow: none !important;
+        border-radius: 0 !important;
+        padding: 30px 40px !important;
+        margin: 0 !important;
+      }
     }
   </style>
 </head>
@@ -436,7 +445,7 @@
           {/* Print Modal */}
           {showPrint && (
             <div style={{ position: "fixed", top: 0, left: 0, width: "100%", height: "100%", background: "rgba(0,0,0,0.75)", zIndex: 1000, display: "flex", alignItems: "flex-start", justifyContent: "center", overflowY: "auto", padding: "16px 0" }}>
-              <style>{`@media print { .no-print { display: none !important; } body > div:first-child > div { display: none; } #print-root { display: block !important; } }`}</style>
+              <style>{``}</style>
               <div style={{ width: "100%", maxWidth: 620, padding: "0 10px" }}>
                 <div className="no-print" style={{ display: "flex", gap: 8, marginBottom: 10, flexWrap: "wrap" }}>
                   <button onClick={() => window.print()} style={{ flex: 1, padding: "12px", background: "#1c2b1e", border: "none", borderRadius: 4, color: "#a8c5a0", fontSize: "0.88rem", fontWeight: 600, cursor: "pointer" }}>
