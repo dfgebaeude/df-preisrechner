@@ -40,18 +40,18 @@
     const { useState } = React;
 
     const PREISE = [
-      { id: "einfach_s",  label: "Einfach S",            netto: 2.75, rahmen: 0.5,  falz: 0.75 },
-      { id: "einfach_m",  label: "Einfach M",            netto: 4.75, rahmen: 0.5,  falz: 0.75 },
-      { id: "einfach_l",  label: "Einfach L",            netto: 5.75, rahmen: 0.5,  falz: 0.75 },
-      { id: "doppel_s",   label: "Doppel S",             netto: 3.75, rahmen: 0.5,  falz: 0.75 },
-      { id: "doppel_m",   label: "Doppel M",             netto: 6.75, rahmen: 0.5,  falz: 0.75 },
-      { id: "doppel_l",   label: "Doppel L",             netto: 7.75, rahmen: 0.5,  falz: 0.75 },
-      { id: "sonder",     label: "Sonderformfenster",    netto: 5,    rahmen: null,  falz: null  },
-      { id: "xl",         label: "XL-Fenster",           netto: 8.25, rahmen: 0.75, falz: 1.00 },
-      { id: "terrasse_1", label: "Terrassentür einfach", netto: 7.25, rahmen: 0.75, falz: 1.00 },
-      { id: "terrasse_2", label: "Terrassentür doppelt", netto: 11.25,rahmen: 0.75, falz: 1.00 },
-      { id: "tuer",       label: "Tür mit Verglasung",   netto: 5.75, rahmen: 0.75, falz: 1.00 },
-      { id: "dach",       label: "Dachfenster",          netto: 5.25, rahmen: 0.75, falz: 1.00 },
+      { id: "einfach_s",  label: "Einflügelfenster S",    netto: 2.75, rahmen: 0.5,  falz: 0.75 },
+      { id: "einfach_m",  label: "Einflügelfenster M",    netto: 4.75, rahmen: 0.5,  falz: 0.75 },
+      { id: "einfach_l",  label: "Einflügelfenster L",    netto: 5.75, rahmen: 0.5,  falz: 0.75 },
+      { id: "doppel_s",   label: "Zweiflügelfenster S",   netto: 3.75, rahmen: 0.5,  falz: 0.75 },
+      { id: "doppel_m",   label: "Zweiflügelfenster M",   netto: 6.75, rahmen: 0.5,  falz: 0.75 },
+      { id: "doppel_l",   label: "Zweiflügelfenster L",   netto: 7.75, rahmen: 0.5,  falz: 0.75 },
+      { id: "sonder",     label: "Sonderformfenster",     netto: 5,    rahmen: null,  falz: null  },
+      { id: "xl",         label: "XL-Fenster",            netto: 8.25, rahmen: 0.75, falz: 1.00 },
+      { id: "terrasse_1", label: "Terrassentür einfach",  netto: 7.25, rahmen: 0.75, falz: 1.00 },
+      { id: "terrasse_2", label: "Terrassentür doppelt",  netto: 11.25,rahmen: 0.75, falz: 1.00 },
+      { id: "tuer",       label: "Tür mit Verglasung",    netto: 5.75, rahmen: 0.75, falz: 1.00 },
+      { id: "dach",       label: "Dachfenster",           netto: 5.25, rahmen: 0.75, falz: 1.00 },
     ];
 
     const fmt = n => new Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR", minimumFractionDigits: 2 }).format(n);
